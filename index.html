@@ -1,0 +1,2923 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>telc A1 Practice Pack</title>
+  <link rel="stylesheet" href="styles-redesign.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>telc A1 Practice Pack</h1>
+          <p id="practiceMeta">Reading, writing, and speaking practice</p>
+        </div>
+      </div>
+      <div class="topbar-actions" aria-label="Practice controls">
+        <div class="timer" aria-label="Timer">
+          <span class="timer-label" id="timerLabel">Focus timer</span>
+          <span class="timer-time" id="timerDisplay">10:00</span>
+          <button class="icon-button" id="timerStart" type="button" title="Start" aria-label="Start timer">▶</button>
+          <button class="icon-button" id="timerPause" type="button" title="Pause" aria-label="Pause timer">Ⅱ</button>
+          <button class="icon-button" id="timerReset" type="button" title="Reset timer" aria-label="Reset timer">↺</button>
+        </div>
+        <button class="global-guide-button" id="guideButton" type="button">Guide</button>
+        <button class="global-reset-button" id="globalResetButton" type="button">Reset answers</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Practice navigation">
+        <nav class="segments" id="moduleSegments" aria-label="Modules"></nav>
+        <nav class="segments part-segments" id="partSegments" aria-label="Parts"></nav>
+        <nav class="segments difficulty-segments" id="difficultySegments" aria-label="Difficulty"></nav>
+        <nav class="question-list" id="questionList" aria-label="Task list"></nav>
+      </aside>
+
+      <main>
+        <section class="practice" id="practice"></section>
+      </main>
+    </div>
+  </div>
+
+  <div class="reset-dialog" id="resetDialog" hidden>
+    <div class="reset-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+      <h3 id="resetTitle">Reset answers</h3>
+      <p>Choose what you want to clear from this browser. This cannot be undone.</p>
+      <div class="reset-actions">
+        <button class="nav-button" type="button" data-reset-scope="current">Current screen</button>
+        <button class="nav-button" type="button" data-reset-scope="module">This module</button>
+        <button class="nav-button" type="button" data-reset-scope="all">Everything</button>
+        <button class="nav-button primary" type="button" data-reset-cancel>Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="onboarding-dialog" id="onboardingDialog" hidden>
+    <div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding-head">
+        <span class="onboarding-kicker">Quick guide</span>
+        <h2 id="onboardingTitle">How to use this practice pack</h2>
+        <p>Practice one task at a time, keep your progress in this browser, and copy your answers for feedback when you want a deeper explanation.</p>
+      </div>
+      <div class="onboarding-grid">
+        <article>
+          <span>1</span>
+          <h3>Choose your focus</h3>
+          <p>Pick Reading, Listening, Writing, or Speaking, then choose the part you want to practice from the left navigation.</p>
+        </article>
+        <article>
+          <span>2</span>
+          <h3>Answer and check</h3>
+          <p>Multiple-choice tasks can be checked in the app. Open writing and speaking tasks are saved for review but are not auto-graded.</p>
+        </article>
+        <article>
+          <span>3</span>
+          <h3>Use the study tools</h3>
+          <p>The timer changes automatically by module. Completed tasks are marked, and you can reset the current task, module, or everything.</p>
+        </article>
+        <article>
+          <span>4</span>
+          <h3>Get AI feedback</h3>
+          <p>Edit the AI instruction if you want, then copy your task and answers into ChatGPT or another AI app for feedback and explanation.</p>
+        </article>
+      </div>
+      <div class="onboarding-actions">
+        <button class="nav-button" type="button" data-onboarding-later>Remind me later</button>
+        <button class="nav-button primary" type="button" data-onboarding-done>Start practicing</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="expanded-bank.js"></script>
+  <script src="extra-mini-tests.js"></script>
+  <script>
+    const modules = [
+      { key: "reading", label: "Reading" },
+      { key: "listening", label: "Listening" },
+      { key: "writing", label: "Writing" },
+      { key: "speaking", label: "Speaking" }
+    ];
+
+    const parts = [
+      { key: "reading-1", module: "reading", label: "Reading Part 1", detail: "Short messages" },
+      { key: "reading-2", module: "reading", label: "Reading Part 2", detail: "Ads and information" },
+      { key: "reading-3", module: "reading", label: "Reading Part 3", detail: "Signs and notices" },
+      { key: "reading-mini", module: "reading", label: "Mini-Tests", detail: "Complete reading sets" },
+      { key: "listening-1", module: "listening", label: "Listening Part 1", detail: "Short announcements" },
+      { key: "listening-2", module: "listening", label: "Listening Part 2", detail: "Everyday messages" },
+      { key: "listening-3", module: "listening", label: "Listening Part 3", detail: "Detail questions" },
+      { key: "writing-form", module: "writing", label: "Writing Part 1", detail: "Fill in forms" },
+      { key: "writing-message", module: "writing", label: "Writing Part 2", detail: "Short message" },
+      { key: "speaking-info", module: "speaking", label: "Speaking Part 2", detail: "Ask for information" },
+      { key: "speaking-request", module: "speaking", label: "Speaking Part 3", detail: "Requests and reactions" }
+    ];
+
+    const difficultyOptions = [
+      { key: "all", label: "All" },
+      { key: "easy", label: "Easy" },
+      { key: "medium", label: "Medium" },
+      { key: "hard", label: "Hard" }
+    ];
+
+    const readingData = [
+      {
+        id: "read-1-1",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 1",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Hallo Sara,
+ich bin heute schon im Deutschkurs. Der Kurs beginnt um 9 Uhr, nicht um 10 Uhr. Bitte komm schnell. Bring bitte dein Buch und einen Stift mit.
+Viele Grüße
+Nina`,
+        questions: [
+          { label: "Der Deutschkurs beginnt um 10 Uhr.", type: "tf", answer: "falsch" },
+          { label: "Sara soll ein Buch mitbringen.", type: "tf", answer: "richtig" },
+          { label: "Nina ist schon im Kurs.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-2",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 2",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Lieber Tom,
+ich kann heute nicht ins Kino kommen. Ich bin krank und bleibe zu Hause. Vielleicht können wir am Samstag ins Kino gehen? Der Film beginnt um 20 Uhr.
+Viele Grüße
+Ben`,
+        questions: [
+          { label: "Ben geht heute ins Kino.", type: "tf", answer: "falsch" },
+          { label: "Ben ist krank.", type: "tf", answer: "richtig" },
+          { label: "Der Film beginnt am Samstag um 20 Uhr.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-3",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 3",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Liebe Maria,
+wir feiern am Freitag meinen Geburtstag. Die Party ist bei mir zu Hause in der Gartenstraße 8. Sie beginnt um 19 Uhr. Bitte bring einen Salat mit.
+Bis Freitag
+Anna`,
+        questions: [
+          { label: "Anna hat am Freitag Geburtstagsparty.", type: "tf", answer: "richtig" },
+          { label: "Die Party beginnt um 18 Uhr.", type: "tf", answer: "falsch" },
+          { label: "Maria soll einen Salat mitbringen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-4",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 4",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Sehr geehrter Herr Müller,
+Ihr Termin bei Dr. Schneider ist am Dienstag um 11.30 Uhr. Bitte bringen Sie Ihre Krankenkarte mit. Wenn Sie nicht kommen können, rufen Sie uns bitte an.
+Praxis Dr. Schneider`,
+        questions: [
+          { label: "Herr Müller hat einen Arzttermin.", type: "tf", answer: "richtig" },
+          { label: "Der Termin ist am Donnerstag.", type: "tf", answer: "falsch" },
+          { label: "Herr Müller soll seine Krankenkarte mitbringen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-5",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 5",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Hallo Paul,
+ich bin jetzt am Bahnhof. Mein Zug hat 20 Minuten Verspätung. Ich komme also erst um 16.20 Uhr an. Warte bitte im Café am Gleis 3.
+Deine Lisa`,
+        questions: [
+          { label: "Lisa ist am Bahnhof.", type: "tf", answer: "richtig" },
+          { label: "Der Zug kommt pünktlich.", type: "tf", answer: "falsch" },
+          { label: "Paul soll im Café warten.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-6",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 6",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Liebe Frau Weber,
+morgen findet kein Deutschkurs statt. Unsere Lehrerin ist krank. Der nächste Kurs ist am Montag um 18 Uhr. Bitte machen Sie die Hausaufgaben im Buch, Seite 24.
+Viele Grüße
+Sprachschule Aktiv`,
+        questions: [
+          { label: "Morgen ist Deutschkurs.", type: "tf", answer: "falsch" },
+          { label: "Die Lehrerin ist krank.", type: "tf", answer: "richtig" },
+          { label: "Der nächste Kurs ist am Montag um 18 Uhr.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-7",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 7",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Hallo Ahmed,
+ich gehe heute nach der Arbeit einkaufen. Brauchen wir Brot, Milch und Äpfel? Ich bin um 18 Uhr zu Hause. Danach können wir zusammen kochen.
+Bis später
+Mona`,
+        questions: [
+          { label: "Mona geht vor der Arbeit einkaufen.", type: "tf", answer: "falsch" },
+          { label: "Mona kommt um 18 Uhr nach Hause.", type: "tf", answer: "richtig" },
+          { label: "Mona und Ahmed können zusammen kochen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-8",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 8",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Liebe Eltern,
+am Mittwoch macht die Klasse 1A einen Ausflug in den Zoo. Die Kinder treffen sich um 8 Uhr vor der Schule. Bitte geben Sie Ihrem Kind Essen und Trinken mit.
+Ihre Lehrerin
+Frau König`,
+        questions: [
+          { label: "Die Klasse fährt am Mittwoch in den Zoo.", type: "tf", answer: "richtig" },
+          { label: "Die Kinder treffen sich um 9 Uhr.", type: "tf", answer: "falsch" },
+          { label: "Die Kinder sollen Essen und Trinken mitbringen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-9",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 9",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Lieber Max,
+danke für deine Einladung. Ich komme gern zu deiner Party. Ich bringe Kuchen mit. Meine Schwester kommt auch mit, wenn das okay ist.
+Viele Grüße
+Julia`,
+        questions: [
+          { label: "Julia kann nicht zur Party kommen.", type: "tf", answer: "falsch" },
+          { label: "Julia bringt Kuchen mit.", type: "tf", answer: "richtig" },
+          { label: "Julia möchte ihre Schwester mitbringen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-10",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 10",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Sehr geehrte Frau Rossi,
+Ihr Paket ist heute in der Postfiliale angekommen. Sie können es ab morgen ab 9 Uhr abholen. Bitte bringen Sie Ihren Ausweis mit.
+DHL Paketshop`,
+        questions: [
+          { label: "Frau Rossi kann das Paket heute abholen.", type: "tf", answer: "falsch" },
+          { label: "Das Paket ist in der Postfiliale.", type: "tf", answer: "richtig" },
+          { label: "Frau Rossi braucht ihren Ausweis.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-11",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 11",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Hallo Leon,
+ich habe zwei Karten für das Konzert am Samstag. Es beginnt um 19.30 Uhr. Wir treffen uns um 18.45 Uhr vor der Halle. Bitte komm pünktlich.
+Viele Grüße
+David`,
+        questions: [
+          { label: "David hat zwei Konzertkarten.", type: "tf", answer: "richtig" },
+          { label: "Das Konzert beginnt um 18.45 Uhr.", type: "tf", answer: "falsch" },
+          { label: "Leon und David treffen sich vor der Halle.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-1-12",
+        section: "reading-1",
+        kind: "True / False",
+        title: "Sample Question 12",
+        instruction: "Read the text. Are the statements correct (+) or incorrect (-)?",
+        text: `Liebe Elena,
+ich kann dir morgen beim Umzug helfen. Ich komme um 10 Uhr mit meinem Auto. Hast du genug Kartons? Ruf mich bitte heute Abend an.
+Viele Grüße
+Sofia`,
+        questions: [
+          { label: "Sofia hilft Elena beim Umzug.", type: "tf", answer: "richtig" },
+          { label: "Sofia kommt ohne Auto.", type: "tf", answer: "falsch" },
+          { label: "Elena soll Sofia heute Abend anrufen.", type: "tf", answer: "richtig" }
+        ]
+      },
+      {
+        id: "read-2-1",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 1",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten am Abend Deutsch lernen.",
+        options: [
+          { value: "a", text: "Sprachschule Mitte\nDeutschkurse A1\nMontag bis Freitag\n9.00–12.00 Uhr" },
+          { value: "b", text: "Deutsch am Abend\nA1-Kurs\nMontag und Mittwoch\n18.00–20.00 Uhr" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "b" }]
+      },
+      {
+        id: "read-2-2",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 2",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie brauchen am Sonntag Brot.",
+        options: [
+          { value: "a", text: "Bäckerei Klein\nMo–Sa 6.00–18.00 Uhr\nSonntag geschlossen" },
+          { value: "b", text: "Bäckerei am Bahnhof\nTäglich geöffnet\n6.00–20.00 Uhr\nAuch sonntags" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "b" }]
+      },
+      {
+        id: "read-2-3",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 3",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten ein Zimmer für eine Person buchen.",
+        options: [
+          { value: "a", text: "Hotel Sonne\nEinzelzimmer und Doppelzimmer\nFrühstück inklusive\nTelefon: 030 445566" },
+          { value: "b", text: "Ferienhaus Berg\nHaus für 6 Personen\nKüche, Garten, Parkplatz" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-4",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 4",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie suchen einen Arzt für Kinder.",
+        options: [
+          { value: "a", text: "Dr. Hoffmann\nKinderarzt\nMo–Fr 8.00–16.00 Uhr\nTermin telefonisch" },
+          { value: "b", text: "Dr. Braun\nZahnarztpraxis\nTermine am Vormittag und Nachmittag" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-5",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 5",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten am Samstag schwimmen gehen.",
+        options: [
+          { value: "a", text: "Hallenbad Nord\nGeöffnet: Di–So\n10.00–21.00 Uhr\nMontag geschlossen" },
+          { value: "b", text: "Fitnessclub Aktiv\nYoga, Pilates, Gymnastik\nKeine Schwimmkurse" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-6",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 6",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten eine Fahrkarte nach Berlin kaufen.",
+        options: [
+          { value: "a", text: "Reisebüro Welt\nFlüge und Hotels\nSommerurlaub in Spanien" },
+          { value: "b", text: "Bahnhof Reisezentrum\nFahrkarten für Bus und Bahn\nTäglich 7.00–19.00 Uhr" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "b" }]
+      },
+      {
+        id: "read-2-7",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 7",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie suchen eine Wohnung mit zwei Zimmern.",
+        options: [
+          { value: "a", text: "Wohnung frei\n2 Zimmer, Küche, Bad\nBalkon, 650 Euro warm\nBesichtigung Freitag" },
+          { value: "b", text: "Zimmer in WG\n1 Zimmer für Studentin\nGemeinsame Küche\n350 Euro" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-8",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 8",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Ihr Handy ist kaputt.",
+        options: [
+          { value: "a", text: "HandyFix\nReparatur von Handys\nDisplay, Akku, Kamera\nSofort-Service" },
+          { value: "b", text: "Foto Müller\nPassfotos und Bilderrahmen\nMo–Fr geöffnet" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-9",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 9",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten am Freitagabend tanzen.",
+        options: [
+          { value: "a", text: "Café Mozart\nKaffee und Kuchen\nTäglich bis 18 Uhr" },
+          { value: "b", text: "Club Luna\nFreitag: Tanzabend\nBeginn 21 Uhr\nEintritt 8 Euro" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "b" }]
+      },
+      {
+        id: "read-2-10",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 10",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten ein Buch ausleihen.",
+        options: [
+          { value: "a", text: "Stadtbibliothek\nBücher, Filme, Zeitungen\nAusweis kostenlos\nMo–Sa geöffnet" },
+          { value: "b", text: "Buchhandlung West\nNeue Bücher kaufen\nKeine Ausleihe" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-11",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 11",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten im Restaurant essen und draußen sitzen.",
+        options: [
+          { value: "a", text: "Restaurant Gartenblick\nWarme Küche\nTerrasse im Sommer geöffnet" },
+          { value: "b", text: "Imbiss Schnell\nEssen zum Mitnehmen\nKein Sitzplatz" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-12",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 12",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie brauchen Blumen für einen Geburtstag.",
+        options: [
+          { value: "a", text: "Blumenhaus Rosa\nBlumensträuße und Pflanzen\nGeburtstagsservice\nLieferung möglich" },
+          { value: "b", text: "Gemüsemarkt Ali\nObst und Gemüse\nTäglich frisch" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-13",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 13",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten wissen, wann der Bus fährt.",
+        options: [
+          { value: "a", text: "www.busplan.de\nFahrplan für Bus und Straßenbahn\nHaltestellen und Zeiten" },
+          { value: "b", text: "www.stadtfest.de\nMusik, Essen und Programm\nSamstag im Park" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-14",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 14",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten einen Kuchen bestellen.",
+        options: [
+          { value: "a", text: "Bäckerei Süß\nKuchen und Torten auf Bestellung\nBitte zwei Tage vorher anrufen" },
+          { value: "b", text: "Café Central\nKaffee und Kuchen im Café\nKeine Bestellung möglich" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-15",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 15",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten am Morgen Sport machen.",
+        options: [
+          { value: "a", text: "Fitnessstudio FitPlus\nKurse: 7.00 Uhr, 9.00 Uhr, 18.00 Uhr\nProbetraining kostenlos" },
+          { value: "b", text: "Sporthalle Süd\nFußballtraining nur abends\n20.00–22.00 Uhr" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-16",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 16",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie suchen eine Apotheke in der Nacht.",
+        options: [
+          { value: "a", text: "Apotheke am Markt\nMo–Fr 8.00–18.00 Uhr\nSamstag 9.00–13.00 Uhr" },
+          { value: "b", text: "Notdienst-Apotheke\nHeute Nacht geöffnet\n22.00–6.00 Uhr\nHauptstraße 10" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "b" }]
+      },
+      {
+        id: "read-2-17",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 17",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten Ihr Kind für einen Schwimmkurs anmelden.",
+        options: [
+          { value: "a", text: "Schwimmschule Delfin\nKurse für Kinder\nAnfänger und Fortgeschrittene\nSamstagvormittag" },
+          { value: "b", text: "Sauna Relax\nSauna und Massage\nNur für Erwachsene" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-18",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 18",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten am Wochenende ein Fahrrad leihen.",
+        options: [
+          { value: "a", text: "Radverleih City\nFahrräder und E-Bikes\nSamstag und Sonntag geöffnet" },
+          { value: "b", text: "Autohaus Schneider\nNeue und gebrauchte Autos\nKeine Fahrräder" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-19",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 19",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten einen Termin beim Zahnarzt machen.",
+        options: [
+          { value: "a", text: "Praxis Dr. Weiß\nZahnarzt\nTermine telefonisch\nSchmerzpatienten willkommen" },
+          { value: "b", text: "Praxis Dr. Grün\nAugenarzt\nBrillen und Sehtest" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-2-20",
+        section: "reading-2",
+        kind: "Ad Choice",
+        title: "Sample Question 20",
+        instruction: "Read the situation and the two ads. Which ad fits?",
+        situation: "Sie möchten Informationen über Museen in Köln.",
+        options: [
+          { value: "a", text: "Touristeninformation Köln\nStadtplan, Museen, Hotels\nInformationen täglich 9.00–18.00 Uhr" },
+          { value: "b", text: "Kölner Sportverein\nFußball, Tennis, Gymnastik\nAnmeldung online" }
+        ],
+        questions: [{ label: "Welche Anzeige passt?", type: "ab", answer: "a" }]
+      },
+      {
+        id: "read-3-1",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 1",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Bäckerei Müller\nHeute geöffnet bis 14.00 Uhr.",
+        questions: [{ label: "Sie können heute um 15.00 Uhr Brot kaufen.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-2",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 2",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Praxis Dr. Klein\nWir machen Urlaub.\nDie Praxis ist vom 3. bis 10. Mai geschlossen.",
+        questions: [{ label: "Am 5. Mai können Sie zu Dr. Klein gehen.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-3",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 3",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Im Bus\nBitte nicht essen und trinken.",
+        questions: [{ label: "Im Bus dürfen Sie Wasser trinken.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-4",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 4",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Bahnhof\nGleis 4: Zug nach München\nAbfahrt 16.45 Uhr",
+        questions: [{ label: "Der Zug nach München fährt um 16.45 Uhr ab.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-5",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 5",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Supermarkt Prima\nSonderangebot:\nMilch 0,99 Euro\nNur heute!",
+        questions: [{ label: "Die Milch kostet heute 0,99 Euro.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-6",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 6",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Bibliothek\nRuhe bitte!\nTelefonieren verboten.",
+        questions: [{ label: "In der Bibliothek dürfen Sie telefonieren.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-7",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 7",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Restaurant Roma\nWarme Küche\n12.00–14.30 Uhr und 18.00–22.00 Uhr",
+        questions: [{ label: "Um 16.00 Uhr können Sie warm essen.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-8",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 8",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Parkhaus Zentrum\n1 Stunde: 2 Euro\nTagesticket: 12 Euro",
+        questions: [{ label: "Eine Stunde Parken kostet 2 Euro.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-9",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 9",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Schwimmbad\nKinder unter 6 Jahren nur mit Erwachsenen.",
+        questions: [{ label: "Ein Kind mit 5 Jahren darf allein ins Schwimmbad.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-10",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 10",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Aufzug außer Betrieb\nBitte benutzen Sie die Treppe.",
+        questions: [{ label: "Der Aufzug funktioniert heute nicht.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-11",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 11",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Postfiliale\nSamstag geöffnet\n9.00–12.00 Uhr",
+        questions: [{ label: "Am Samstag um 11.00 Uhr ist die Post geöffnet.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-12",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 12",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Schule\nElternabend Klasse 1A\nDonnerstag, 19.00 Uhr\nRaum 12",
+        questions: [{ label: "Der Elternabend ist am Donnerstag.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-13",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 13",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Kino Max\nHeute: Kinderfilm\nBeginn 15.00 Uhr\nEintritt Kinder: 5 Euro",
+        questions: [{ label: "Der Kinderfilm beginnt um 17.00 Uhr.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-14",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 14",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Apotheke\nNotdienst heute Nacht\n20.00–8.00 Uhr",
+        questions: [{ label: "Die Apotheke ist heute Nacht geöffnet.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-15",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 15",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Im Zug\nBitte zeigen Sie Ihre Fahrkarte.",
+        questions: [{ label: "Sie brauchen im Zug eine Fahrkarte.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-16",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 16",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Kursraum 3\nDeutsch A1\nHeute in Raum 5.",
+        questions: [{ label: "Der Deutschkurs A1 ist heute in Raum 3.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-17",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 17",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Museum Stadtgeschichte\nMontag geschlossen.\nDienstag bis Sonntag geöffnet.",
+        questions: [{ label: "Sie können am Montag ins Museum gehen.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-18",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 18",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Hotel Adler\nFrühstück\n7.00–10.00 Uhr",
+        questions: [{ label: "Im Hotel können Sie um 8.30 Uhr frühstücken.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-19",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 19",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Haltestelle Rathaus\nBus 12 fährt heute nicht.\nBitte nehmen Sie Bus 18.",
+        questions: [{ label: "Heute können Sie Bus 12 nehmen.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-20",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 20",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Kita Sonnenschein\nBitte holen Sie Ihr Kind bis 16.30 Uhr ab.",
+        questions: [{ label: "Eltern sollen die Kinder vor 16.30 Uhr abholen.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-21",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 21",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Waschsalon\nWaschen: 4 Euro\nTrocknen: 2 Euro",
+        questions: [{ label: "Waschen und Trocknen zusammen kosten 6 Euro.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-22",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 22",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Arztpraxis\nSprechzeiten heute:\n8.00–12.00 Uhr\nNachmittag geschlossen.",
+        questions: [{ label: "Heute Nachmittag ist die Praxis geöffnet.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-23",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 23",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Café am Markt\nKaffee und Kuchen\nTäglich ab 14.00 Uhr",
+        questions: [{ label: "Sie können dort jeden Tag ab 14 Uhr Kaffee trinken.", type: "tf", answer: "richtig" }]
+      },
+      {
+        id: "read-3-24",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 24",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Sporthalle\nHeute kein Training.\nDie Halle ist wegen Reparatur geschlossen.",
+        questions: [{ label: "Heute findet Training statt.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "read-3-25",
+        section: "reading-3",
+        kind: "True / False",
+        title: "Sample Question 25",
+        instruction: "Read the sign or notice. Is the statement correct (+) or incorrect (-)?",
+        sign: "Wohnhaus\nBitte die Haustür immer schließen.",
+        questions: [{ label: "Die Haustür soll offen bleiben.", type: "tf", answer: "falsch" }]
+      },
+      {
+        id: "mini-1",
+        section: "reading-mini",
+        kind: "Mini-Test",
+        title: "Mini-Test 1",
+        instruction: "Use this as one timed reading set. Try to finish in 25 minutes.",
+        groups: [
+          {
+            title: "Teil 1",
+            blocks: [
+              {
+                heading: "Text A",
+                text: `Hallo Omar,
+ich komme heute später zum Deutschkurs. Mein Bus fährt nicht. Ich nehme den Zug und bin um 10.15 Uhr da. Bitte sag der Lehrerin Bescheid.
+Viele Grüße
+Samir`,
+                questions: [
+                  { label: "Samir kommt später.", type: "tf", answer: "richtig" },
+                  { label: "Samirs Bus fährt heute.", type: "tf", answer: "falsch" },
+                  { label: "Samir kommt um 10.15 Uhr.", type: "tf", answer: "richtig" }
+                ]
+              },
+              {
+                heading: "Text B",
+                text: `Liebe Eva,
+morgen gehen wir schwimmen. Wir treffen uns um 15 Uhr vor dem Hallenbad. Bring bitte deine Badehose und ein Handtuch mit. Danach essen wir Pizza.
+Dein Tim`,
+                questions: [
+                  { label: "Eva und Tim treffen sich vor dem Hallenbad.", type: "tf", answer: "richtig" },
+                  { label: "Eva soll ein Handtuch mitbringen.", type: "tf", answer: "richtig" }
+                ]
+              }
+            ]
+          },
+          {
+            title: "Teil 2",
+            blocks: [
+              { situation: "Sie möchten eine Pizza nach Hause bestellen.", options: [{ value: "a", text: "Restaurant Napoli — Pizza-Lieferung bis 22 Uhr." }, { value: "b", text: "Café Sonne — Kuchen und Kaffee, kein Lieferdienst." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie möchten am Montag zur Bank.", options: [{ value: "a", text: "Bank City — Mo–Fr 9.00–16.00 Uhr." }, { value: "b", text: "Bank Nord — Nur Samstag geöffnet." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie suchen einen Kurs für Anfänger.", options: [{ value: "a", text: "Deutsch B2 für Fortgeschrittene." }, { value: "b", text: "Deutsch A1 für Anfänger." }], questions: [{ label: "Antwort", type: "ab", answer: "b" }] },
+              { situation: "Sie brauchen eine Brille.", options: [{ value: "a", text: "Optik Weber — Brillen und Sehtest." }, { value: "b", text: "Schuhhaus Klein — Schuhe für Damen und Herren." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie möchten am Sonntag ins Museum.", options: [{ value: "a", text: "Museum Kunst — Sonntag geöffnet 10.00–18.00 Uhr." }, { value: "b", text: "Museum Natur — Sonntag geschlossen." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] }
+            ]
+          },
+          {
+            title: "Teil 3",
+            blocks: [
+              { sign: "Rauchen verboten.", questions: [{ label: "Hier darf man rauchen.", type: "tf", answer: "falsch" }] },
+              { sign: "Heute geöffnet bis 20 Uhr.", questions: [{ label: "Um 19 Uhr ist geöffnet.", type: "tf", answer: "richtig" }] },
+              { sign: "Bitte hier nicht parken.", questions: [{ label: "Hier darf man das Auto abstellen.", type: "tf", answer: "falsch" }] },
+              { sign: "Deutsch A1 heute in Raum 8.", questions: [{ label: "Der A1-Kurs ist heute in Raum 8.", type: "tf", answer: "richtig" }] },
+              { sign: "Bus 5 kommt heute 10 Minuten später.", questions: [{ label: "Bus 5 ist heute pünktlich.", type: "tf", answer: "falsch" }] }
+            ]
+          }
+        ]
+      },
+      {
+        id: "mini-2",
+        section: "reading-mini",
+        kind: "Mini-Test",
+        title: "Mini-Test 2",
+        instruction: "Use this as one timed reading set. Try to finish in 25 minutes.",
+        groups: [
+          {
+            title: "Teil 1",
+            blocks: [
+              {
+                heading: "Text A",
+                text: `Liebe Frau Maier,
+Ihr Sohn Lukas ist heute krank. Er hat Fieber und bleibt zu Hause. Können Sie bitte die Hausaufgaben per E-Mail schicken?
+Viele Grüße
+Anna Maier`,
+                questions: [
+                  { label: "Lukas ist krank.", type: "tf", answer: "richtig" },
+                  { label: "Lukas geht heute in die Schule.", type: "tf", answer: "falsch" },
+                  { label: "Frau Maier bittet um die Hausaufgaben.", type: "tf", answer: "richtig" }
+                ]
+              },
+              {
+                heading: "Text B",
+                text: `Hallo Jan,
+ich bin im Supermarkt. Es gibt keine Eier mehr. Ich kaufe Milch, Brot und Käse. Soll ich auch Obst kaufen? Schreib mir bitte schnell.
+Liebe Grüße
+Nora`,
+                questions: [
+                  { label: "Nora kauft Eier.", type: "tf", answer: "falsch" },
+                  { label: "Nora fragt nach Obst.", type: "tf", answer: "richtig" }
+                ]
+              }
+            ]
+          },
+          {
+            title: "Teil 2",
+            blocks: [
+              { situation: "Sie möchten eine Jacke kaufen.", options: [{ value: "a", text: "Modehaus Winter — Jacken, Hosen, Pullover." }, { value: "b", text: "Reisebüro Sonne — Reisen und Hotels." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie möchten im Sommer Urlaub am Meer machen.", options: [{ value: "a", text: "Hotel Meerblick — Zimmer am Strand, Juli und August." }, { value: "b", text: "Hotel Bahnhof — Zimmer direkt am Hauptbahnhof." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie möchten Ihr Auto reparieren lassen.", options: [{ value: "a", text: "Werkstatt AutoFix — Reparatur, Reifen, Ölwechsel." }, { value: "b", text: "Fahrradhaus RadProfi — Fahrräder und Zubehör." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie suchen einen Kindergartenplatz.", options: [{ value: "a", text: "Kita Regenbogen — Plätze frei ab September." }, { value: "b", text: "Universität Stadt — Deutschkurse für Studenten." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] },
+              { situation: "Sie möchten einen Stadtplan kaufen.", options: [{ value: "a", text: "Touristeninformation — Stadtpläne, Tickets, Informationen." }, { value: "b", text: "Apotheke Nord — Medikamente und Beratung." }], questions: [{ label: "Antwort", type: "ab", answer: "a" }] }
+            ]
+          },
+          {
+            title: "Teil 3",
+            blocks: [
+              { sign: "Kasse bitte hier.", questions: [{ label: "Sie können hier bezahlen.", type: "tf", answer: "richtig" }] },
+              { sign: "Heute keine Kartenzahlung.", questions: [{ label: "Sie können heute mit Karte bezahlen.", type: "tf", answer: "falsch" }] },
+              { sign: "Eingang links.", questions: [{ label: "Der Eingang ist rechts.", type: "tf", answer: "falsch" }] },
+              { sign: "Mittagspause 12.00–13.00 Uhr.", questions: [{ label: "Um 12.30 Uhr ist Pause.", type: "tf", answer: "richtig" }] },
+              { sign: "Nur für Mitarbeiter.", questions: [{ label: "Kunden dürfen hier hinein.", type: "tf", answer: "falsch" }] }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const listeningSeeds = [
+      ["listening-1", "easy", "Train announcement", "Achtung am Gleis zwei. Der Zug nach Bonn fährt heute um 14 Uhr 20 ab. Bitte steigen Sie jetzt ein.", "Wann fährt der Zug nach Bonn?", [["a", "14.10 Uhr"], ["b", "14.20 Uhr"], ["c", "15.20 Uhr"]], "b"],
+      ["listening-1", "easy", "Doctor appointment", "Praxis Dr. Weber. Ihr Termin ist am Mittwoch um neun Uhr. Bitte bringen Sie Ihre Krankenkarte mit.", "Wann ist der Termin?", [["a", "am Mittwoch um 9 Uhr"], ["b", "am Montag um 9 Uhr"], ["c", "am Mittwoch um 19 Uhr"]], "a"],
+      ["listening-1", "easy", "Supermarket offer", "Heute im Supermarkt: Äpfel kosten nur ein Euro neunzig pro Kilo. Das Angebot gilt nur heute.", "Was ist heute im Angebot?", [["a", "Milch"], ["b", "Äpfel"], ["c", "Brot"]], "b"],
+      ["listening-1", "easy", "Course room", "Der Deutschkurs A1 ist heute nicht in Raum drei. Bitte gehen Sie in Raum fünf.", "Wo ist der Deutschkurs heute?", [["a", "in Raum 3"], ["b", "in Raum 4"], ["c", "in Raum 5"]], "c"],
+      ["listening-1", "medium", "Library notice", "Die Stadtbibliothek schließt heute schon um sechzehn Uhr. Morgen ist sie wieder von neun bis achtzehn Uhr geöffnet.", "Wann schließt die Bibliothek heute?", [["a", "um 16 Uhr"], ["b", "um 18 Uhr"], ["c", "um 9 Uhr"]], "a"],
+      ["listening-1", "medium", "Hotel breakfast", "Guten Morgen. Das Frühstück ist im ersten Stock. Sie können von sieben Uhr bis zehn Uhr frühstücken.", "Wo ist das Frühstück?", [["a", "im Erdgeschoss"], ["b", "im ersten Stock"], ["c", "im Zimmer"]], "b"],
+      ["listening-1", "medium", "Bus delay", "Der Bus zwölf kommt heute zehn Minuten später. Bitte warten Sie an der Haltestelle Rathaus.", "Was sollen die Fahrgäste machen?", [["a", "Bus 18 nehmen"], ["b", "an der Haltestelle warten"], ["c", "zum Bahnhof gehen"]], "b"],
+      ["listening-1", "hard", "Pharmacy service", "Die Apotheke am Markt hat heute Nacht Notdienst. Sie finden den Eingang rechts neben der Bank.", "Wo ist der Eingang?", [["a", "rechts neben der Bank"], ["b", "links neben dem Markt"], ["c", "gegenüber der Schule"]], "a"],
+      ["listening-1", "hard", "School trip", "Liebe Eltern, die Klasse trifft sich morgen um acht Uhr fünfzehn vor der Schule. Bitte geben Sie den Kindern Essen, Trinken und drei Euro mit.", "Was sollen die Kinder mitbringen?", [["a", "nur Essen"], ["b", "Essen, Trinken und Geld"], ["c", "Bücher und Hefte"]], "b"],
+      ["listening-1", "hard", "Restaurant reservation", "Restaurant Roma, guten Tag. Ihr Tisch für vier Personen ist am Freitag um neunzehn Uhr reserviert.", "Für wie viele Personen ist der Tisch reserviert?", [["a", "zwei"], ["b", "drei"], ["c", "vier"]], "c"],
+
+      ["listening-2", "easy", "Message from Anna", "Hallo Max, ich bin im Café am Markt. Ich warte draußen, denn das Wetter ist schön. Komm bitte um fünfzehn Uhr.", "Anna wartet draußen.", [["richtig", "richtig"], ["falsch", "falsch"]], "richtig"],
+      ["listening-2", "easy", "Message from Ben", "Hallo Lisa, ich kann heute nicht kommen. Ich muss bis achtzehn Uhr arbeiten. Können wir uns morgen treffen?", "Ben kann heute kommen.", [["richtig", "richtig"], ["falsch", "falsch"]], "falsch"],
+      ["listening-2", "easy", "School message", "Guten Morgen, heute fällt der Sportkurs aus. Die Sporthalle ist geschlossen.", "Heute gibt es keinen Sportkurs.", [["richtig", "richtig"], ["falsch", "falsch"]], "richtig"],
+      ["listening-2", "medium", "Shop message", "Ihr Paket ist angekommen. Sie können es heute bis siebzehn Uhr in der Filiale abholen. Bitte bringen Sie einen Ausweis mit.", "Man braucht einen Ausweis.", [["richtig", "richtig"], ["falsch", "falsch"]], "richtig"],
+      ["listening-2", "medium", "Cinema message", "Der Film beginnt nicht um zwanzig Uhr, sondern erst um zwanzig Uhr dreißig. Die Karten liegen an der Kasse.", "Der Film beginnt um 20 Uhr.", [["richtig", "richtig"], ["falsch", "falsch"]], "falsch"],
+      ["listening-2", "medium", "Apartment viewing", "Guten Tag Frau Yilmaz. Die Wohnungsbesichtigung ist am Donnerstag um siebzehn Uhr. Bitte klingeln Sie bei Becker.", "Die Besichtigung ist am Donnerstag.", [["richtig", "richtig"], ["falsch", "falsch"]], "richtig"],
+      ["listening-2", "hard", "Weather message", "Morgen regnet es am Vormittag. Am Nachmittag scheint die Sonne. Der Ausflug beginnt deshalb erst um vierzehn Uhr.", "Der Ausflug beginnt am Vormittag.", [["richtig", "richtig"], ["falsch", "falsch"]], "falsch"],
+      ["listening-2", "hard", "Doctor office", "Sie sprechen mit der Praxis Dr. Klein. Am Montag haben wir nur vormittags geöffnet. Am Nachmittag ist die Praxis geschlossen.", "Am Montag kann man nachmittags zur Praxis kommen.", [["richtig", "richtig"], ["falsch", "falsch"]], "falsch"],
+      ["listening-2", "hard", "Course payment", "Bitte bezahlen Sie den Kurs bis Freitag. Sie können bar im Büro bezahlen oder das Geld überweisen.", "Man kann den Kurs nur online bezahlen.", [["richtig", "richtig"], ["falsch", "falsch"]], "falsch"],
+      ["listening-2", "hard", "Birthday plan", "Hallo Julia, die Party ist nicht bei mir zu Hause. Wir feiern im Park. Bring bitte eine Decke mit.", "Die Party ist im Park.", [["richtig", "richtig"], ["falsch", "falsch"]], "richtig"],
+
+      ["listening-3", "easy", "Buying bread", "Guten Morgen. Ich hätte gern zwei Brötchen und ein kleines Brot. Haben Sie auch Kuchen?", "Was möchte die Person kaufen?", [["a", "Brot und Brötchen"], ["b", "nur Kuchen"], ["c", "Milch und Käse"]], "a"],
+      ["listening-3", "easy", "At the station", "Eine Fahrkarte nach Berlin, bitte. Einfach, zweite Klasse. Ich möchte heute um zwölf Uhr fahren.", "Welche Fahrkarte möchte die Person?", [["a", "hin und zurück"], ["b", "einfach nach Berlin"], ["c", "nach Bonn"]], "b"],
+      ["listening-3", "easy", "At home", "Kannst du bitte das Fenster schließen? Es ist kalt im Wohnzimmer.", "Was soll geschlossen werden?", [["a", "die Tür"], ["b", "das Fenster"], ["c", "die Tasche"]], "b"],
+      ["listening-3", "medium", "At the café", "Ich nehme einen Kaffee und ein Stück Apfelkuchen. Für meinen Sohn bitte ein Wasser.", "Was trinkt der Sohn?", [["a", "Kaffee"], ["b", "Tee"], ["c", "Wasser"]], "c"],
+      ["listening-3", "medium", "At the hotel", "Ich habe ein Zimmer für zwei Nächte reserviert. Mein Name ist Novak. Ist das Frühstück inklusive?", "Wie lange bleibt Herr Novak?", [["a", "eine Nacht"], ["b", "zwei Nächte"], ["c", "drei Nächte"]], "b"],
+      ["listening-3", "medium", "At the bank", "Ich habe meine Bankkarte verloren. Können Sie die Karte bitte sperren? Ich brauche auch eine neue Karte.", "Was ist passiert?", [["a", "Die Karte ist verloren."], ["b", "Die Karte ist zu Hause."], ["c", "Die Karte ist neu."]], "a"],
+      ["listening-3", "hard", "At the school", "Mein Sohn ist krank. Er hat Fieber und kommt heute nicht in die Schule. Können Sie die Hausaufgaben per E-Mail schicken?", "Warum kommt das Kind nicht?", [["a", "Es hat Fieber."], ["b", "Es hat Ferien."], ["c", "Es hat keine Hausaufgaben."]], "a"],
+      ["listening-3", "hard", "At the repair shop", "Mein Handy ist gestern heruntergefallen. Das Display ist kaputt, aber der Akku funktioniert noch.", "Was ist kaputt?", [["a", "der Akku"], ["b", "das Display"], ["c", "die Kamera"]], "b"],
+      ["listening-3", "hard", "At the tourist office", "Wir sind vom sechsten bis zehnten August in Hamburg. Wir möchten Museen besuchen und brauchen einen Stadtplan.", "Wie lange sind die Personen in Hamburg?", [["a", "vom 6. bis 10. August"], ["b", "vom 10. bis 16. August"], ["c", "nur am 6. August"]], "a"],
+      ["listening-3", "hard", "At the sports club", "Der Yogakurs am Montagabend ist voll. Es gibt aber noch freie Plätze am Mittwoch um achtzehn Uhr.", "Wann gibt es freie Plätze?", [["a", "Montagabend"], ["b", "Mittwoch um 18 Uhr"], ["c", "Sonntag um 8 Uhr"]], "b"]
+    ];
+
+    const listeningData = listeningSeeds.map((seed, index) => ({
+      id: `listen-${index + 1}`,
+      section: seed[0],
+      kind: seed[4].startsWith("Was") || seed[4].startsWith("Wann") || seed[4].startsWith("Wo") || seed[4].startsWith("Welche") || seed[4].startsWith("Wie") || seed[4].startsWith("Warum") || seed[4].startsWith("Für") ? "Listening Choice" : "Listening True / False",
+      title: seed[2],
+      difficulty: seed[1],
+      instruction: "Listen to the audio. Choose the correct answer.",
+      audioText: seed[3],
+      questions: [{
+        label: seed[4],
+        type: seed[5].length === 2 && seed[5][0][0] === "richtig" ? "tf" : "abc",
+        choices: seed[5].map(([value, text]) => ({ value, text })),
+        answer: seed[6]
+      }]
+    }));
+
+    const legacyData = [
+      {
+        id: "form-1",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Anmeldung zum Deutschkurs",
+        scenario: "Frau Sara Khan kommt aus Pakistan. Sie wohnt in Mainz, Gartenstraße 12, 55116. Sie ist am 03.08.1994 geboren. Sie möchte einen Deutschkurs A1 am Abend besuchen. Ihre Telefonnummer ist 0176 23456780.",
+        formTitle: "Deutschkurs A1",
+        fields: ["Familienname", "Vorname", "Geburtsdatum", "Adresse", "Kurszeit"]
+      },
+      {
+        id: "form-2",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Hotelreservierung",
+        scenario: "Herr Jan Novak fährt am 14. Juli nach Köln. Er bleibt zwei Nächte. Er möchte ein Einzelzimmer mit Frühstück im Hotel Rheinblick. Er bezahlt mit Kreditkarte.",
+        formTitle: "Hotel Rheinblick",
+        fields: ["Name", "Anreise", "Anzahl der Nächte", "Zimmer", "Zahlungsweise"]
+      },
+      {
+        id: "form-3",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Bibliotheksausweis",
+        scenario: "Maria Rossi ist am 22.02.1988 geboren. Sie wohnt in Bremen, Parkallee 6, 28209. Sie möchte einen Ausweis für die Stadtbibliothek. Ihre E-Mail-Adresse ist maria.rossi@mail.de.",
+        formTitle: "Stadtbibliothek",
+        fields: ["Familienname", "Vorname", "Geburtsdatum", "Adresse", "E-Mail"]
+      },
+      {
+        id: "form-4",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Arzttermin",
+        scenario: "Ali Demir ist krank. Er hat Fieber. Er möchte am Dienstag um 10 Uhr einen Termin bei Dr. Weber. Seine Krankenversicherung ist AOK. Seine Telefonnummer ist 0157 33445566.",
+        formTitle: "Arztpraxis Dr. Weber",
+        fields: ["Name", "Grund", "Tag", "Uhrzeit", "Telefon"]
+      },
+      {
+        id: "form-5",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Schwimmkurs",
+        scenario: "Emma Fischer ist 8 Jahre alt. Ihre Mutter meldet sie für den Schwimmkurs \"Anfänger\" an. Der Kurs ist samstags um 10 Uhr. Die Familie wohnt in Essen, Hansastraße 8. Die Telefonnummer der Mutter ist 0172 9080706.",
+        formTitle: "Schwimmkurs",
+        fields: ["Name des Kindes", "Alter", "Kurs", "Tag und Uhrzeit", "Telefon"]
+      },
+      {
+        id: "form-6",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Fahrradverleih",
+        scenario: "David Lee möchte am Samstag ein E-Bike leihen. Er braucht das Fahrrad von 10 Uhr bis 14 Uhr. Er wohnt im Hotel City, Zimmer 204. Er bezahlt bar.",
+        formTitle: "Fahrradverleih",
+        fields: ["Name", "Fahrradtyp", "Tag", "Uhrzeit", "Zahlungsweise"]
+      },
+      {
+        id: "form-7",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Konzertkarten",
+        scenario: "Paula Santos möchte zwei Karten für das Jazzkonzert am Freitag kaufen. Sie möchte Plätze im Saal B. Ihre Telefonnummer ist 0160 88221100. Sie bezahlt online.",
+        formTitle: "Kartenbestellung",
+        fields: ["Name", "Veranstaltung", "Anzahl der Karten", "Tag", "Saal"]
+      },
+      {
+        id: "form-8",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Kita-Anmeldung",
+        scenario: "Lina Yilmaz meldet ihre Tochter Leyla für die Kita Sonnenschein an. Leyla ist 3 Jahre alt. Die Betreuung soll am 1. September beginnen. Leyla soll von 8 Uhr bis 15 Uhr in der Kita bleiben. Die Familie wohnt in Hamburg, Mozartstraße 14.",
+        formTitle: "Kita Sonnenschein",
+        fields: ["Name des Kindes", "Alter", "Beginn", "Betreuungszeit", "Adresse"]
+      },
+      {
+        id: "form-9",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Prüfungsanmeldung",
+        scenario: "Ahmed Hassan meldet sich für die Prüfung telc Deutsch A1 an. Die Prüfung ist am 25. Mai in Bonn. Herr Hassan ist am 12.12.1990 geboren. Seine Passnummer ist P456789.",
+        formTitle: "Prüfungszentrum",
+        fields: ["Familienname", "Prüfung", "Prüfungsdatum", "Prüfungsort", "Passnummer"]
+      },
+      {
+        id: "form-10",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Busreise",
+        scenario: "Olga Petrova fährt mit ihrem Mann und ihrer Tochter nach Berlin. Die Reise ist am nächsten Samstag. Die Familie wohnt im Hotel Am Markt, Potsdamer Straße 9, 10115 Berlin. Frau Petrova hat keine Kreditkarte und bezahlt bar.",
+        formTitle: "Busreise",
+        fields: ["Name", "Anzahl der Personen", "Davon Kinder", "Reiseziel", "Zahlungsweise"]
+      },
+      {
+        id: "form-11",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Fitnessclub",
+        scenario: "Juan Garcia möchte einen Probemonat im Fitnessclub Aktiv machen. Er möchte den Yogakurs am Montagabend besuchen. Er ist am 05.06.1985 geboren. Seine Telefonnummer ist 0151 66778899.",
+        formTitle: "Fitnessclub Aktiv",
+        fields: ["Name", "Angebot", "Kurs", "Kurszeit", "Telefon"]
+      },
+      {
+        id: "form-12",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Wohnungsbesichtigung",
+        scenario: "Elena Brown sucht eine Wohnung in Leipzig. Sie möchte eine Wohnung mit zwei Zimmern. Sie möchte die Wohnung am Donnerstag um 17 Uhr besichtigen. Sie kommt allein. Ihre Telefonnummer ist 0179 33221144.",
+        formTitle: "Wohnungsbesichtigung",
+        fields: ["Name", "Stadt", "Zimmerzahl", "Termin", "Uhrzeit"]
+      },
+      {
+        id: "form-13",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Kochkurs",
+        scenario: "Chen Mei meldet sich zum Kurs \"Italienisch kochen\" an. Der Kurs ist am Mittwoch um 18 Uhr. Frau Chen isst kein Fleisch. Sie wohnt in Nürnberg, Lindenweg 3. Ihre E-Mail ist chen.mei@mail.de.",
+        formTitle: "Kochschule",
+        fields: ["Name", "Kurs", "Tag", "Uhrzeit", "Besonderheit"]
+      },
+      {
+        id: "form-14",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Paketabholung",
+        scenario: "Max Bauer möchte ein Paket abholen. Die Sendungsnummer ist 99887766. Das Paket liegt in der Filiale Hauptstraße 3. Herr Bauer kommt am Freitag um 16 Uhr. Seine Ausweisnummer ist L1234567.",
+        formTitle: "Paketservice",
+        fields: ["Name", "Sendungsnummer", "Filiale", "Abholtag", "Ausweisnummer"]
+      },
+      {
+        id: "form-15",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Tennisverein",
+        scenario: "Noah Johnson ist 16 Jahre alt. Er möchte im Tennisverein den Kurs \"Anfänger\" besuchen. Der Kurs ist dienstags um 16 Uhr. Seine Mutter heißt Anna Johnson. Ihre Telefonnummer ist 0176 12121212.",
+        formTitle: "Tennisverein",
+        fields: ["Name des Teilnehmers", "Alter", "Kurs", "Kurszeit", "Telefon der Eltern"]
+      },
+      {
+        id: "form-16",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Autovermietung",
+        scenario: "Marta Lopez braucht einen kleinen Mietwagen vom 3. Juni bis 5. Juni. Sie holt das Auto am Flughafen Frankfurt ab. Sie braucht auch einen Kindersitz. Sie bezahlt mit Kreditkarte.",
+        formTitle: "Autovermietung",
+        fields: ["Name", "Autotyp", "Mietbeginn", "Mietende", "Abholort"]
+      },
+      {
+        id: "form-17",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Theaterkarten",
+        scenario: "Peter Schneider möchte drei Karten für das Theaterstück \"Der Hund\" kaufen. Die Vorstellung ist am Sonntag um 15 Uhr. Zwei Karten sind für Erwachsene und eine Karte ist für ein Kind.",
+        formTitle: "Theaterkasse",
+        fields: ["Name", "Stück", "Anzahl der Karten", "Tag", "Uhrzeit"]
+      },
+      {
+        id: "form-18",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Computerkurs",
+        scenario: "Frau Inge Berger ist 68 Jahre alt. Sie möchte den Computerkurs für Senioren besuchen. Der Kurs ist dienstags von 9 Uhr bis 11 Uhr. Frau Berger hat keine E-Mail-Adresse. Ihre Telefonnummer ist 0611 445566.",
+        formTitle: "Computerkurs",
+        fields: ["Name", "Alter", "Kurs", "Kurszeit", "Telefon"]
+      },
+      {
+        id: "form-19",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Sommerfest",
+        scenario: "Familie Nguyen kommt zum Sommerfest der Schule. Das Fest ist am Samstag. Vier Personen kommen: zwei Erwachsene und zwei Kinder. Die Familie bringt einen Kuchen mit. Die Telefonnummer ist 0173 5554433.",
+        formTitle: "Sommerfest",
+        fields: ["Familienname", "Tag", "Anzahl der Personen", "Davon Kinder", "Wir bringen mit"]
+      },
+      {
+        id: "form-20",
+        section: "writing-form",
+        kind: "Formular",
+        title: "Hamburg-Card",
+        scenario: "Daniel Klein besucht Hamburg vom 6. August bis 10. August. Er wohnt im Hotel Hafen. Er möchte eine Hamburg-Card für Museen kaufen. Er bezahlt mit Karte.",
+        formTitle: "Touristenkarte",
+        fields: ["Name", "Stadt", "Von", "Bis", "Hotel"]
+      },
+      {
+        id: "message-1",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Touristeninformation",
+        intro: "Schreiben Sie an die Touristeninformation in Hamburg.",
+        formality: "Formal",
+        points: ["Sie kommen im Juli nach Hamburg.", "Bitten Sie um einen Stadtplan und Informationen über Sehenswürdigkeiten.", "Fragen Sie nach günstigen Hotels."]
+      },
+      {
+        id: "message-2",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Sprachschule",
+        intro: "Schreiben Sie an eine Sprachschule.",
+        formality: "Formal",
+        points: ["Sie möchten einen Deutschkurs A1 besuchen.", "Fragen Sie: Wann beginnt der Kurs?", "Fragen Sie nach dem Preis und nach einem Abendkurs."]
+      },
+      {
+        id: "message-3",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Hotelreservierung",
+        intro: "Schreiben Sie an ein Hotel in München.",
+        formality: "Formal",
+        points: ["Sie möchten ein Zimmer für zwei Personen reservieren.", "Sie kommen vom 10. bis 12. August.", "Fragen Sie nach Frühstück und Parkplatz."]
+      },
+      {
+        id: "message-4",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Arzttermin absagen",
+        intro: "Schreiben Sie an Ihre Arztpraxis.",
+        formality: "Formal",
+        points: ["Sie können morgen nicht zum Termin kommen.", "Entschuldigen Sie sich.", "Bitten Sie um einen neuen Termin am Vormittag."]
+      },
+      {
+        id: "message-5",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Geburtstagseinladung",
+        intro: "Schreiben Sie an Ihre Freundin Anna.",
+        formality: "Informal",
+        points: ["Sie haben am Samstag Geburtstag.", "Laden Sie Anna zur Party ein.", "Schreiben Sie Uhrzeit und Adresse."]
+      },
+      {
+        id: "message-6",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Einladung ablehnen",
+        intro: "Schreiben Sie an Ihren Freund Tom.",
+        formality: "Informal",
+        points: ["Danken Sie für die Einladung.", "Sie können leider nicht kommen, weil Sie arbeiten müssen.", "Fragen Sie, ob Sie nächste Woche treffen können."]
+      },
+      {
+        id: "message-7",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Kind krank",
+        intro: "Schreiben Sie an die Schule Ihres Kindes.",
+        formality: "Formal",
+        points: ["Ihr Kind ist heute krank.", "Es hat Fieber und kann nicht in die Schule kommen.", "Fragen Sie nach den Hausaufgaben."]
+      },
+      {
+        id: "message-8",
+        section: "writing-message",
+        kind: "Mitteilung",
+        title: "Nachbarn informieren",
+        intro: "Schreiben Sie an Ihre Nachbarn.",
+        formality: "Informal/Formal",
+        points: ["Sie feiern am Freitag eine kleine Party.", "Die Party beginnt um 19 Uhr.", "Entschuldigen Sie sich für möglichen Lärm."]
+      },
+      {
+        id: "message-9",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Heizung kaputt",
+        intro: "Schreiben Sie an Ihren Vermieter.",
+        formality: "Formal",
+        points: ["Die Heizung in Ihrer Wohnung ist kaputt.", "Bitten Sie um eine Reparatur.", "Schreiben Sie, wann Sie zu Hause sind."]
+      },
+      {
+        id: "message-10",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Paket nicht angekommen",
+        intro: "Schreiben Sie an einen Online-Shop.",
+        formality: "Formal",
+        points: ["Sie haben am Montag etwas bestellt.", "Das Paket ist noch nicht angekommen.", "Fragen Sie nach dem Liefertermin."]
+      },
+      {
+        id: "message-11",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Schwimmkurs",
+        intro: "Schreiben Sie an eine Schwimmschule.",
+        formality: "Formal",
+        points: ["Ihr Kind möchte schwimmen lernen.", "Fragen Sie nach einem Anfängerkurs.", "Fragen Sie nach Preis und Beginn."]
+      },
+      {
+        id: "message-12",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Bankkarte verloren",
+        intro: "Schreiben Sie an Ihre Bank.",
+        formality: "Formal",
+        points: ["Sie haben Ihre Bankkarte verloren.", "Bitten Sie darum, die Karte zu sperren.", "Fragen Sie nach einer neuen Karte."]
+      },
+      {
+        id: "message-13",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Bücher verlängern",
+        intro: "Schreiben Sie an die Stadtbibliothek.",
+        formality: "Formal",
+        points: ["Sie können die Bücher heute nicht zurückbringen.", "Bitten Sie um Verlängerung.", "Fragen Sie nach den Öffnungszeiten am Samstag."]
+      },
+      {
+        id: "message-14",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Handy-Reparatur",
+        intro: "Schreiben Sie an ein Handygeschäft.",
+        formality: "Formal",
+        points: ["Ihr Handy ist kaputt.", "Fragen Sie, wie viel die Reparatur kostet.", "Fragen Sie, wie lange die Reparatur dauert."]
+      },
+      {
+        id: "message-15",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Zugverbindung",
+        intro: "Schreiben Sie an die Bahninformation.",
+        formality: "Formal",
+        points: ["Sie möchten am Freitag von München nach Berlin fahren.", "Fragen Sie nach Abfahrtszeiten.", "Fragen Sie nach dem Preis."]
+      },
+      {
+        id: "message-16",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Wohnung besichtigen",
+        intro: "Schreiben Sie an eine Wohnungsagentur.",
+        formality: "Formal",
+        points: ["Sie interessieren sich für eine Zwei-Zimmer-Wohnung.", "Fragen Sie nach der Miete.", "Bitten Sie um einen Besichtigungstermin."]
+      },
+      {
+        id: "message-17",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Zahnarzttermin",
+        intro: "Schreiben Sie an eine Zahnarztpraxis.",
+        formality: "Formal",
+        points: ["Sie haben Zahnschmerzen.", "Bitten Sie um einen schnellen Termin.", "Schreiben Sie, dass Sie am Vormittag Zeit haben."]
+      },
+      {
+        id: "message-18",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Umzugshilfe",
+        intro: "Schreiben Sie an Ihren Freund Max.",
+        formality: "Informal",
+        points: ["Sie ziehen am Samstag um.", "Bitten Sie Max um Hilfe.", "Schreiben Sie, dass es Essen und Getränke gibt."]
+      },
+      {
+        id: "message-19",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Neue Adresse",
+        intro: "Schreiben Sie an das Bürgerbüro.",
+        formality: "Formal",
+        points: ["Sie haben eine neue Adresse.", "Sie möchten Ihre Adresse ändern.", "Fragen Sie, welche Dokumente Sie mitbringen müssen."]
+      },
+      {
+        id: "message-20",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Fitnesskurs",
+        intro: "Schreiben Sie an ein Fitnessstudio.",
+        formality: "Formal",
+        points: ["Sie möchten einen Yogakurs machen.", "Fragen Sie nach Kurszeiten.", "Fragen Sie nach dem Preis für einen Monat."]
+      },
+      {
+        id: "message-21",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Einladung ins Café",
+        intro: "Schreiben Sie an Ihre Freundin Maria.",
+        formality: "Informal",
+        points: ["Sie möchten Maria am Sonntag treffen.", "Laden Sie sie ins Café ein.", "Fragen Sie, ob 15 Uhr passt."]
+      },
+      {
+        id: "message-22",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Danke sagen",
+        intro: "Schreiben Sie an Ihren Freund Paul.",
+        formality: "Informal",
+        points: ["Danken Sie für seine Hilfe gestern.", "Schreiben Sie, dass alles gut geklappt hat.", "Laden Sie ihn zum Abendessen ein."]
+      },
+      {
+        id: "message-23",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Defekte Ware",
+        intro: "Schreiben Sie an ein Geschäft.",
+        formality: "Formal",
+        points: ["Sie haben gestern eine Tasche gekauft.", "Der Reißverschluss ist kaputt.", "Bitten Sie um Umtausch oder Geld zurück."]
+      },
+      {
+        id: "message-24",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Reisebüro",
+        intro: "Schreiben Sie an ein Reisebüro.",
+        formality: "Formal",
+        points: ["Sie möchten im September nach Österreich reisen.", "Sie reisen mit zwei Personen.", "Fragen Sie nach Hotel und Preis."]
+      },
+      {
+        id: "message-25",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Arbeit",
+        intro: "Schreiben Sie an Ihren Chef / Ihre Chefin.",
+        formality: "Formal",
+        points: ["Sie sind heute krank.", "Sie können nicht zur Arbeit kommen.", "Fragen Sie, wann Sie die Krankmeldung schicken sollen."]
+      },
+      {
+        id: "message-26",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Theaterkarten",
+        intro: "Schreiben Sie an die Theaterkasse.",
+        formality: "Formal",
+        points: ["Sie möchten zwei Karten für Samstag reservieren.", "Fragen Sie nach freien Plätzen.", "Fragen Sie, wie Sie bezahlen können."]
+      },
+      {
+        id: "message-27",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Deutschkurs",
+        intro: "Schreiben Sie an Ihre Deutschlehrerin.",
+        formality: "Informal/Formal",
+        points: ["Sie können morgen nicht zum Kurs kommen.", "Sie haben einen Arzttermin.", "Fragen Sie nach den Hausaufgaben."]
+      },
+      {
+        id: "message-28",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Kita",
+        intro: "Schreiben Sie an die Kita Ihres Kindes.",
+        formality: "Formal",
+        points: ["Sie kommen heute später.", "Sie holen Ihr Kind erst um 16 Uhr ab.", "Bitten Sie um einen kurzen Anruf bei Problemen."]
+      },
+      {
+        id: "message-29",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Neue Wohnung",
+        intro: "Schreiben Sie an Ihre Freundin Sofia.",
+        formality: "Informal",
+        points: ["Sie haben eine neue Wohnung.", "Schreiben Sie Ihre neue Adresse.", "Laden Sie Sofia am Wochenende zu Besuch ein."]
+      },
+      {
+        id: "message-30",
+        section: "writing-message",
+        kind: "E-Mail",
+        title: "Kuchen bestellen",
+        intro: "Schreiben Sie an eine Bäckerei.",
+        formality: "Formal",
+        points: ["Sie möchten einen Kuchen für einen Geburtstag bestellen.", "Sie brauchen den Kuchen am Samstag um 10 Uhr.", "Fragen Sie nach dem Preis."]
+      },
+      {
+        id: "speak-info-1",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Essen und Trinken",
+        cards: ["Frühstück", "Kaffee", "Restaurant", "Kochen", "Wasser", "Abendessen"],
+        examples: ["Was essen Sie gern zum Frühstück?", "Trinken Sie gern Kaffee?", "Kochen Sie gern zu Hause?"]
+      },
+      {
+        id: "speak-info-2",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Einkaufen",
+        cards: ["Supermarkt", "Brot", "Kleidung", "Preis", "Kasse", "Öffnungszeiten"],
+        examples: ["Wo kaufen Sie Brot?", "Kaufen Sie gern Kleidung?", "Wie sind die Öffnungszeiten im Supermarkt?"]
+      },
+      {
+        id: "speak-info-3",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Freizeit",
+        cards: ["Kino", "Musik", "Sport", "Wochenende", "Freunde", "Hobby"],
+        examples: ["Gehen Sie gern ins Kino?", "Was machen Sie am Wochenende?", "Haben Sie ein Hobby?"]
+      },
+      {
+        id: "speak-info-4",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Wohnen",
+        cards: ["Wohnung", "Zimmer", "Küche", "Balkon", "Miete", "Nachbarn"],
+        examples: ["Wie viele Zimmer hat Ihre Wohnung?", "Haben Sie einen Balkon?", "Sind Ihre Nachbarn nett?"]
+      },
+      {
+        id: "speak-info-5",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Familie",
+        cards: ["Eltern", "Kinder", "Geschwister", "Geburtstag", "Besuch", "Haustier"],
+        examples: ["Haben Sie Geschwister?", "Wann hat Ihre Mutter Geburtstag?", "Haben Sie ein Haustier?"]
+      },
+      {
+        id: "speak-info-6",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Arbeit und Kurs",
+        cards: ["Beruf", "Arbeitszeit", "Pause", "Deutschkurs", "Hausaufgaben", "Kollegin"],
+        examples: ["Was sind Sie von Beruf?", "Wann haben Sie Pause?", "Machen Sie gern Hausaufgaben?"]
+      },
+      {
+        id: "speak-info-7",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Reisen und Verkehr",
+        cards: ["Bahnhof", "Bus", "Hotel", "Koffer", "Urlaub", "Fahrkarte"],
+        examples: ["Fahren Sie gern mit dem Bus?", "Wohin fahren Sie im Urlaub?", "Kaufen Sie Fahrkarten online?"]
+      },
+      {
+        id: "speak-info-8",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Gesundheit",
+        cards: ["Arzt", "Apotheke", "Termin", "Kopfschmerzen", "Medikamente", "Sport"],
+        examples: ["Wann gehen Sie zum Arzt?", "Haben Sie oft Kopfschmerzen?", "Kaufen Sie Medikamente in der Apotheke?"]
+      },
+      {
+        id: "speak-info-9",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Wetter",
+        cards: ["Sommer", "Winter", "Regen", "Sonne", "Kleidung", "Urlaub"],
+        examples: ["Mögen Sie den Sommer?", "Was machen Sie bei Regen?", "Welche Kleidung tragen Sie im Winter?"]
+      },
+      {
+        id: "speak-info-10",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Stadt",
+        cards: ["Park", "Museum", "Bahnhof", "Café", "Supermarkt", "Arztpraxis"],
+        examples: ["Gibt es einen Park in Ihrer Stadt?", "Gehen Sie gern ins Café?", "Wo ist der Bahnhof?"]
+      },
+      {
+        id: "speak-info-11",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Schule und Kinder",
+        cards: ["Lehrer", "Hausaufgaben", "Schulweg", "Klasse", "Sport", "Pause"],
+        examples: ["Machen Kinder gern Hausaufgaben?", "Wie lange ist der Schulweg?", "Was machen die Kinder in der Pause?"]
+      },
+      {
+        id: "speak-info-12",
+        section: "speaking-info",
+        kind: "Wortkarten",
+        title: "Thema Handy und Internet",
+        cards: ["Handy", "Internet", "E-Mail", "Foto", "Musik", "Computer"],
+        examples: ["Haben Sie ein Handy?", "Schreiben Sie oft E-Mails?", "Hören Sie Musik am Handy?"]
+      },
+      {
+        id: "speak-request-1",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Stift",
+        request: "Können Sie mir bitte einen Stift geben?",
+        reaction: "Ja, gern. Hier, bitte."
+      },
+      {
+        id: "speak-request-2",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Fenster",
+        request: "Können Sie bitte das Fenster öffnen?",
+        reaction: "Ja, natürlich."
+      },
+      {
+        id: "speak-request-3",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Wasser",
+        request: "Ein Glas Wasser, bitte.",
+        reaction: "Hier, bitte."
+      },
+      {
+        id: "speak-request-4",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Handy",
+        request: "Können Sie mir bitte Ihr Handy geben?",
+        reaction: "Tut mir leid, ich brauche es."
+      },
+      {
+        id: "speak-request-5",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Uhr",
+        request: "Können Sie mir bitte die Uhrzeit sagen?",
+        reaction: "Ja, es ist drei Uhr."
+      },
+      {
+        id: "speak-request-6",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Schlüssel",
+        request: "Können Sie mir bitte den Schlüssel geben?",
+        reaction: "Ja, hier ist der Schlüssel."
+      },
+      {
+        id: "speak-request-7",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Koffer",
+        request: "Können Sie mir bitte mit dem Koffer helfen?",
+        reaction: "Ja, gern."
+      },
+      {
+        id: "speak-request-8",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Brot",
+        request: "Können Sie mir bitte das Brot geben?",
+        reaction: "Ja, bitte schön."
+      },
+      {
+        id: "speak-request-9",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Salz",
+        request: "Können Sie mir bitte das Salz geben?",
+        reaction: "Ja, hier, bitte."
+      },
+      {
+        id: "speak-request-10",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Foto",
+        request: "Können Sie bitte ein Foto machen?",
+        reaction: "Ja, gern."
+      },
+      {
+        id: "speak-request-11",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Tür",
+        request: "Können Sie bitte die Tür schließen?",
+        reaction: "Ja, natürlich."
+      },
+      {
+        id: "speak-request-12",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Licht",
+        request: "Können Sie bitte das Licht anmachen?",
+        reaction: "Ja, einen Moment."
+      },
+      {
+        id: "speak-request-13",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Rechnung",
+        request: "Die Rechnung, bitte.",
+        reaction: "Ja, sofort."
+      },
+      {
+        id: "speak-request-14",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Stadtplan",
+        request: "Können Sie mir bitte einen Stadtplan geben?",
+        reaction: "Ja, hier ist ein Stadtplan."
+      },
+      {
+        id: "speak-request-15",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Adresse",
+        request: "Können Sie die Adresse bitte aufschreiben?",
+        reaction: "Ja, gern."
+      },
+      {
+        id: "speak-request-16",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Fahrkarte",
+        request: "Eine Fahrkarte nach Berlin, bitte.",
+        reaction: "Ja, einfach oder hin und zurück?"
+      },
+      {
+        id: "speak-request-17",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Tasche",
+        request: "Können Sie bitte kurz auf meine Tasche aufpassen?",
+        reaction: "Ja, kein Problem."
+      },
+      {
+        id: "speak-request-18",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Jacke",
+        request: "Können Sie mir bitte meine Jacke geben?",
+        reaction: "Ja, hier ist sie."
+      },
+      {
+        id: "speak-request-19",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Computer",
+        request: "Können Sie mir bitte am Computer helfen?",
+        reaction: "Ja, gern."
+      },
+      {
+        id: "speak-request-20",
+        section: "speaking-request",
+        kind: "Bildkarte",
+        title: "Taxi",
+        request: "Können Sie bitte ein Taxi rufen?",
+        reaction: "Ja, natürlich."
+      }
+    ];
+
+    const expandedData = (window.EXPANDED_A1_BANK || []).map((item) => {
+      if (!item.id?.startsWith("exp-listen")) return item;
+      return {
+        ...item,
+        audioText: item.audioText || item.text,
+        text: undefined,
+        questions: item.questions.map((question) => ({
+          ...question,
+          choices: question.choices || item.options
+        }))
+      };
+    });
+
+    const extraMiniTests = window.EXTRA_MINI_TESTS || [];
+    const data = [...readingData, ...listeningData, ...expandedData, ...extraMiniTests, ...legacyData];
+    document.querySelector("#practiceMeta").textContent = `${data.length} tasks for reading, listening, writing, and speaking`;
+
+    const partByKey = Object.fromEntries(parts.map((part) => [part.key, part]));
+    const partLabels = Object.fromEntries(parts.map((part) => [part.key, part.label]));
+    const moduleLabels = Object.fromEntries(modules.map((module) => [module.key, module.label]));
+    const kindLabels = {
+      "Formular": "Form",
+      "Wortkarten": "Word cards",
+      "Bildkarte": "Picture card",
+      "E-Mail": "Email",
+      "Mitteilung": "Short note"
+    };
+    const STORAGE_KEY = "telc-a1-practice-progress-v1";
+    const AI_PROMPT_STORAGE_KEY = "telc-a1-practice-ai-prompt-v1";
+    const ONBOARDING_STORAGE_KEY = "telc-a1-practice-onboarding-seen-v1";
+    const DEFAULT_AI_PROMPT = "Please assess my telc A1 practice answer. Check whether I answered the task correctly and give concise feedback in English. Keep the German task text and my German answers unchanged when you refer to them.";
+    const storedProgress = loadStoredProgress();
+    const answers = storedProgress.answers || {};
+    const checked = storedProgress.checked || {};
+    let aiPrompt = loadStoredAiPrompt();
+    const state = {
+      module: storedProgress.state?.module || "reading",
+      part: storedProgress.state?.part || "reading-1",
+      index: Number.isInteger(storedProgress.state?.index) ? storedProgress.state.index : 0,
+      difficulty: storedProgress.state?.difficulty || "all"
+    };
+
+    const moduleSegments = document.querySelector("#moduleSegments");
+    const partSegments = document.querySelector("#partSegments");
+    const difficultySegments = document.querySelector("#difficultySegments");
+    const questionList = document.querySelector("#questionList");
+    const practice = document.querySelector("#practice");
+    const resetDialog = document.querySelector("#resetDialog");
+    const onboardingDialog = document.querySelector("#onboardingDialog");
+    let activeTimerPresetKey = "";
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatMultiline(value) {
+      return escapeHtml(value).replaceAll("\n", "<br>");
+    }
+
+    function loadStoredProgress() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function loadStoredAiPrompt() {
+      try {
+        return window.localStorage.getItem(AI_PROMPT_STORAGE_KEY) || DEFAULT_AI_PROMPT;
+      } catch {
+        return DEFAULT_AI_PROMPT;
+      }
+    }
+
+    function saveAiPrompt() {
+      try {
+        window.localStorage.setItem(AI_PROMPT_STORAGE_KEY, aiPrompt);
+      } catch {
+        // Prompt persistence is best-effort; copy still works with the current value.
+      }
+    }
+
+    function getAiPromptForCopy() {
+      return aiPrompt.trim() || DEFAULT_AI_PROMPT;
+    }
+
+    function hasSeenOnboarding() {
+      try {
+        return window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
+      } catch {
+        return false;
+      }
+    }
+
+    function markOnboardingSeen() {
+      try {
+        window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+      } catch {
+        // Onboarding persistence is best-effort; the app remains usable without it.
+      }
+    }
+
+    function saveProgress() {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, checked, state }));
+      } catch {
+        // Progress persistence is best-effort; the practice UI still works without storage.
+      }
+    }
+
+    function clearItemProgress(item) {
+      delete answers[item.id];
+      delete checked[item.id];
+    }
+
+    function resetProgress(scope) {
+      if (scope === "current") {
+        const item = getFilteredData()[state.index];
+        if (item) clearItemProgress(item);
+      }
+
+      if (scope === "module") {
+        data
+          .filter((item) => partByKey[item.section]?.module === state.module)
+          .forEach(clearItemProgress);
+      }
+
+      if (scope === "all") {
+        Object.keys(answers).forEach((key) => delete answers[key]);
+        Object.keys(checked).forEach((key) => delete checked[key]);
+      }
+
+      saveProgress();
+      closeResetDialog();
+      renderAll();
+    }
+
+    function openResetDialog() {
+      resetDialog.hidden = false;
+      resetDialog.querySelector("[data-reset-cancel]")?.focus();
+    }
+
+    function closeResetDialog() {
+      resetDialog.hidden = true;
+    }
+
+    function openOnboarding() {
+      onboardingDialog.hidden = false;
+      onboardingDialog.querySelector("[data-onboarding-done]")?.focus();
+    }
+
+    function closeOnboarding(markSeen = false) {
+      if (markSeen) markOnboardingSeen();
+      onboardingDialog.hidden = true;
+    }
+
+    function normalizeState() {
+      if (!modules.some((module) => module.key === state.module)) {
+        state.module = "reading";
+      }
+
+      const moduleParts = parts.filter((part) => part.module === state.module);
+      if (!moduleParts.some((part) => part.key === state.part)) {
+        state.part = moduleParts[0].key;
+      }
+
+      if (!difficultyOptions.some((option) => option.key === state.difficulty)) {
+        state.difficulty = "all";
+      }
+
+      if (!shouldShowDifficultyFilter() && state.difficulty !== "all") {
+        state.difficulty = "all";
+      }
+
+      const filtered = getFilteredData();
+      if (!filtered.length && state.difficulty !== "all") {
+        state.difficulty = "all";
+        return normalizeState();
+      }
+      if (state.index >= filtered.length) state.index = filtered.length - 1;
+      if (state.index < 0) state.index = 0;
+    }
+
+    function getDifficulty(item) {
+      return item.difficulty || "easy";
+    }
+
+    function getPartItems(partKey = state.part) {
+      return data.filter((item) => item.section === partKey);
+    }
+
+    function hasDifficultyMetadata(partKey = state.part) {
+      return getPartItems(partKey).some((item) => Boolean(item.difficulty));
+    }
+
+    function getAvailableDifficultyKeys(partKey = state.part) {
+      const keys = new Set(getPartItems(partKey).map(getDifficulty));
+      return difficultyOptions
+        .filter((option) => option.key !== "all" && keys.has(option.key))
+        .map((option) => option.key);
+    }
+
+    function shouldShowDifficultyFilter(partKey = state.part) {
+      return getAvailableDifficultyKeys(partKey).length > 1;
+    }
+
+    function getFilteredData() {
+      return data.filter((item) => {
+        if (item.section !== state.part) return false;
+        if (state.difficulty === "all") return true;
+        return getDifficulty(item) === state.difficulty;
+      });
+    }
+
+    function getDifficultyCount(key) {
+      const partItems = getPartItems();
+      if (key === "all") return partItems.length;
+      return partItems.filter((item) => getDifficulty(item) === key).length;
+    }
+
+    function getKindLabel(item) {
+      return kindLabels[item.kind] || item.kind;
+    }
+
+    function renderModuleSegments() {
+      const currentModule = modules.find((module) => module.key === state.module);
+      moduleSegments.innerHTML = `
+        <div class="module-switcher">
+          <span class="module-switcher-label">Current module</span>
+          <details class="module-menu">
+            <summary aria-label="Choose module">
+              <span>${escapeHtml(currentModule?.label || "Module")}</span>
+              <span class="module-caret" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="module-menu-list">
+              ${modules.map((module) => `
+                <button class="module-option ${state.module === module.key ? "is-active" : ""}" type="button" data-module="${module.key}" ${state.module === module.key ? 'aria-current="true"' : ""}>
+                  ${escapeHtml(module.label)}
+                </button>
+              `).join("")}
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    function renderPartSegments() {
+      const moduleParts = parts.filter((part) => part.module === state.module);
+      partSegments.innerHTML = moduleParts.map((part) => `
+        <button class="segment ${state.part === part.key ? "is-active" : ""}" type="button" data-part="${part.key}">
+          <span>${escapeHtml(part.label)}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderDifficultySegments() {
+      if (!shouldShowDifficultyFilter()) {
+        difficultySegments.hidden = true;
+        difficultySegments.innerHTML = "";
+        return;
+      }
+
+      difficultySegments.hidden = false;
+      difficultySegments.innerHTML = difficultyOptions
+        .filter((option) => option.key === "all" || getDifficultyCount(option.key) > 0)
+        .map((option) => `
+        <button class="segment ${state.difficulty === option.key ? "is-active" : ""}" type="button" data-difficulty="${option.key}">
+          <span>${escapeHtml(option.label)}</span>
+          <span class="count">${getDifficultyCount(option.key)}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderQuestionList() {
+      const filtered = getFilteredData();
+      const showDifficulty = hasDifficultyMetadata();
+      questionList.innerHTML = filtered.map((item, index) => {
+        const status = getItemStatus(item);
+        const statusLabel = status === "complete" ? "Completed" : status === "started" ? "Started" : "";
+        const difficultyLabel = showDifficulty ? ` · ${escapeHtml(getDifficulty(item))}` : "";
+        return `
+        <button class="question-button is-${status}" type="button" data-index="${index}" aria-current="${index === state.index ? "true" : "false"}">
+          <span class="number">${status === "complete" ? "✓" : index + 1}</span>
+          <span>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(getKindLabel(item))} · ${escapeHtml(partLabels[item.section])}${difficultyLabel}${statusLabel ? ` · ${statusLabel}` : ""}</span>
+          </span>
+        </button>
+      `;
+      }).join("");
+    }
+
+    function renderPoints(points) {
+      return `
+        <ul class="points">
+          ${points.map((point, index) => `<li data-index="${index + 1}">${escapeHtml(point)}</li>`).join("")}
+        </ul>
+      `;
+    }
+
+    function hasObjectiveQuestions(item) {
+      return Boolean(item.questions || item.groups);
+    }
+
+    function isListeningItem(item) {
+      return item.section.startsWith("listening-");
+    }
+
+    function getObjectiveQuestions(item) {
+      const questions = [];
+      const pushQuestions = (items, context = "") => {
+        items.forEach((question) => {
+          const number = questions.length + 1;
+          questions.push({
+            ...question,
+            key: `q${number}`,
+            number,
+            context,
+            copyLabel: context ? `${context} — ${question.label}` : question.label
+          });
+        });
+      };
+
+      if (item.questions) {
+        pushQuestions(item.questions);
+      }
+
+      if (item.groups) {
+        item.groups.forEach((group) => {
+          group.blocks.forEach((block) => {
+            const context = [group.title, block.heading || block.situation || block.sign].filter(Boolean).join(" · ");
+            pushQuestions(block.questions, context);
+          });
+        });
+      }
+
+      return questions;
+    }
+
+    function getChoices(question) {
+      if (question.choices) return question.choices;
+      const values = question.type === "ab" ? ["a", "b"] : ["richtig", "falsch"];
+      return values.map((value) => ({ value, text: value }));
+    }
+
+    function getAnswerPairs(item) {
+      if (hasObjectiveQuestions(item)) {
+        return getObjectiveQuestions(item).map((question) => ({
+          label: `Question ${question.number}: ${question.copyLabel}`,
+          value: answers[item.id]?.[question.key] || ""
+        }));
+      }
+
+      if (item.section === "writing-form") {
+        return item.fields.map((field) => ({
+          label: field,
+          value: answers[item.id]?.[field] || ""
+        }));
+      }
+
+      if (item.section === "speaking-request") {
+        return [
+          { label: "Bitte", value: answers[item.id]?.request || "" },
+          { label: "Reaktion", value: answers[item.id]?.reaction || "" }
+        ];
+      }
+
+      const label = item.section === "speaking-info" ? "My questions / answer" : "My answer";
+      return [{ label, value: answers[item.id]?.text || "" }];
+    }
+
+    function getCorrectAnswerPairs(item) {
+      if (!hasObjectiveQuestions(item)) return [];
+      return getObjectiveQuestions(item).map((question) => ({
+        label: `Question ${question.number}: ${question.copyLabel}`,
+        value: question.answer
+      }));
+    }
+
+    function hasAnswer(item) {
+      return getAnswerPairs(item).some((pair) => pair.value.trim().length > 0);
+    }
+
+    function isItemComplete(item) {
+      const pairs = getAnswerPairs(item);
+      if (!pairs.length) return false;
+      return pairs.every((pair) => pair.value.trim().length > 0);
+    }
+
+    function getItemStatus(item) {
+      if (isItemComplete(item)) return "complete";
+      if (hasAnswer(item)) return "started";
+      return "empty";
+    }
+
+    function getCompletionStats(items) {
+      const total = items.length;
+      const complete = items.filter(isItemComplete).length;
+      const started = items.filter((item) => getItemStatus(item) === "started").length;
+      return {
+        total,
+        complete,
+        started,
+        percent: total ? Math.round((complete / total) * 100) : 0
+      };
+    }
+
+    function renderModuleFocus(part, filtered) {
+      const moduleItems = data.filter((item) => partByKey[item.section]?.module === state.module);
+      const partItems = data.filter((item) => item.section === state.part);
+      const moduleStats = getCompletionStats(moduleItems);
+      const partStats = getCompletionStats(partItems);
+      const difficultyText = state.difficulty === "all" ? "" : ` · ${state.difficulty} filter`;
+      const timerPreset = getTimerPreset(part);
+      return `
+        <section class="module-focus">
+          <div>
+            <h2>${escapeHtml(moduleLabels[state.module])}</h2>
+            <p>${escapeHtml(part.label)} · ${escapeHtml(part.detail)}</p>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="${moduleLabels[state.module]} completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${moduleStats.percent}">
+            <div class="progress-fill" style="--progress: ${moduleStats.percent}%"></div>
+          </div>
+          <p class="focus-stats">
+            ${moduleStats.complete} of ${moduleStats.total} ${moduleLabels[state.module].toLowerCase()} tasks complete ·
+            ${partStats.complete} of ${partStats.total} in ${part.label} ·
+            ${filtered.length} shown${difficultyText}
+          </p>
+          <div class="timer-focus">
+            <div>
+              <strong>Timer set to ${timerPreset.minutes}:00</strong>
+              <span>${escapeHtml(timerPreset.label)}</span>
+            </div>
+            <button class="nav-button primary" type="button" id="startFocusTimerButton">Start ${timerPreset.minutes} min timer</button>
+          </div>
+        </section>
+      `;
+    }
+
+    function getTimerPreset(part) {
+      if (state.part === "reading-mini") {
+        return { minutes: 25, label: "Official-style reading practice time is about 25 minutes." };
+      }
+      if (part.module === "listening") {
+        return { minutes: 20, label: "Official telc A1 listening block is about 20 minutes." };
+      }
+      if (part.module === "reading") {
+        return { minutes: 25, label: "Official-style reading practice time is about 25 minutes." };
+      }
+      if (part.module === "writing") {
+        return { minutes: 20, label: "Official-style writing practice time is about 20 minutes; reading and writing together are 45 minutes." };
+      }
+      return { minutes: 15, label: "Official telc A1 speaking block is about 15 minutes." };
+    }
+
+    function formatItemForCopy(item) {
+      const globalIndex = data.findIndex((entry) => entry.id === item.id) + 1;
+      const part = partByKey[item.section];
+      const lines = [
+        getAiPromptForCopy(),
+        "",
+        `Task ${globalIndex}`,
+        `Module: ${moduleLabels[part.module]}`,
+        `Part: ${part.label}`,
+        `Task type: ${getKindLabel(item)}`,
+        `Title: ${item.title}`,
+        ""
+      ];
+
+      if (hasObjectiveQuestions(item)) {
+        addObjectivePromptAndAnswersForCopy(lines, item);
+        return lines.join("\n");
+      }
+
+      if (item.section === "writing-form") {
+        lines.push("Situation:", item.scenario, "", `Form: ${item.formTitle}`, "Fields:");
+        item.fields.forEach((field) => lines.push(`- ${field}`));
+      }
+
+      if (item.section === "writing-message") {
+        lines.push("Task:", item.intro, "", "Content points:");
+        item.points.forEach((point, index) => lines.push(`${index + 1}. ${point}`));
+        lines.push("", `Text form: ${item.formality}`);
+      }
+
+      if (item.section === "speaking-info") {
+        lines.push("Word cards:", item.cards.join(", "), "", "Examples:");
+        item.examples.forEach((example, index) => lines.push(`${index + 1}. ${example}`));
+      }
+
+      if (item.section === "speaking-request") {
+        lines.push(
+          `Picture card: ${item.title}`,
+          "",
+          "Example:",
+          `- Request: ${item.request}`,
+          `- Reaction: ${item.reaction}`
+        );
+      }
+
+      lines.push("", "My answers:");
+      getAnswerPairs(item).forEach((pair) => {
+        lines.push(`- ${pair.label}: ${pair.value.trim() || "[blank]"}`);
+      });
+
+      const correctAnswers = getCorrectAnswerPairs(item);
+      if (correctAnswers.length) {
+        lines.push("", "Answer key for assessment:");
+        correctAnswers.forEach((pair) => {
+          lines.push(`- ${pair.label}: ${pair.value}`);
+        });
+      }
+
+      return lines.join("\n");
+    }
+
+    function addObjectiveAnswerLine(lines, question, item) {
+      const value = answers[item.id]?.[question.key]?.trim() || "[blank]";
+      lines.push(`${question.number}. ${question.label}`);
+      lines.push(`   My answer: ${value}`);
+      lines.push(`   Correct answer: ${question.answer}`);
+    }
+
+    function addObjectivePromptAndAnswersForCopy(lines, item) {
+      lines.push("Instructions:", item.instruction, "");
+
+      if (item.text) lines.push("Text:", item.text, "");
+      if (item.situation) lines.push("Situation:", item.situation, "");
+      if (item.sign) lines.push("Sign / notice:", item.sign, "");
+      if (item.audioText) lines.push("Audio script:", item.audioText, "");
+
+      if (item.options) {
+        lines.push("Options:");
+        item.options.forEach((option) => lines.push(`${option.value}) ${option.text}`));
+        lines.push("");
+      }
+
+      const questions = getObjectiveQuestions(item);
+
+      if (item.groups) {
+        let questionIndex = 0;
+        item.groups.forEach((group) => {
+          lines.push(group.title);
+          group.blocks.forEach((block, blockIndex) => {
+            lines.push(`Item ${blockIndex + 1}:`);
+            if (block.heading) lines.push(block.heading);
+            if (block.text) lines.push(block.text);
+            if (block.situation) lines.push(`Situation: ${block.situation}`);
+            if (block.sign) lines.push(`Sign / notice: ${block.sign}`);
+            if (block.options) {
+              block.options.forEach((option) => lines.push(`${option.value}) ${option.text}`));
+            }
+            block.questions.forEach(() => {
+              addObjectiveAnswerLine(lines, questions[questionIndex], item);
+              questionIndex += 1;
+            });
+            lines.push("");
+          });
+        });
+        return;
+      }
+
+      lines.push("Answers:");
+      questions.forEach((question) => addObjectiveAnswerLine(lines, question, item));
+    }
+
+    function copyWithFallback(text) {
+      const fallback = () => {
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.left = "-9999px";
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand("copy");
+        helper.remove();
+        if (copied) return "copied";
+        showManualCopyFallback(text);
+        return "manual";
+      };
+
+      if (navigator.clipboard?.writeText) {
+        return navigator.clipboard.writeText(text).then(() => "copied").catch(fallback);
+      }
+
+      return Promise.resolve(fallback());
+    }
+
+    function showManualCopyFallback(text) {
+      document.querySelector(".copy-fallback")?.remove();
+      const panel = document.createElement("div");
+      panel.className = "copy-fallback";
+      panel.innerHTML = `
+        <h3>Copy text</h3>
+        <p>Your browser blocked automatic clipboard access. The text below is selected, so press Cmd+C or Ctrl+C.</p>
+        <textarea readonly></textarea>
+        <div class="copy-fallback-row">
+          <button class="copy-button" type="button">Close</button>
+        </div>
+      `;
+      const textarea = panel.querySelector("textarea");
+      textarea.value = text;
+      panel.querySelector("button").addEventListener("click", () => panel.remove());
+      document.body.appendChild(panel);
+      textarea.focus();
+      textarea.select();
+    }
+
+    function setCopyStatus(message, isError = false) {
+      const status = document.querySelector("#copyStatus");
+      if (!status) return;
+      status.textContent = message;
+      status.style.color = isError ? "var(--berry)" : "var(--green)";
+      window.clearTimeout(setCopyStatus.timeout);
+      setCopyStatus.timeout = window.setTimeout(() => {
+        status.textContent = "";
+      }, 2600);
+    }
+
+    async function copyCurrentItem() {
+      const item = getFilteredData()[state.index];
+      const result = await copyWithFallback(formatItemForCopy(item));
+      setCopyStatus(result === "copied" ? "Copied" : "Text selected", false);
+    }
+
+    async function copyAnsweredItems() {
+      const answeredItems = data.filter(hasAnswer);
+      if (answeredItems.length === 0) {
+        setCopyStatus("No answers yet", true);
+        return;
+      }
+
+      const text = answeredItems.map(formatItemForCopy).join("\n\n---\n\n");
+      const result = await copyWithFallback(text);
+      setCopyStatus(result === "copied" ? `${answeredItems.length} copied` : "Text selected", false);
+    }
+
+    function renderCopyActions() {
+      return `
+        <div class="copy-panel">
+          <div class="copy-panel-header">
+            <div>
+              <div class="copy-title-row">
+                <h4>Copy for AI assessment</h4>
+                <span class="info-tooltip" tabindex="0" aria-describedby="copyInfoTooltip">
+                  <span class="info-icon" aria-hidden="true">i</span>
+                  <span class="copy-panel-hint" id="copyInfoTooltip" role="tooltip">
+                    Edit only the instruction below, then copy your task and answers to paste into ChatGPT or another AI app for feedback.
+                  </span>
+                </span>
+              </div>
+            </div>
+            <button class="copy-button quiet" id="resetAiPromptButton" type="button">Reset prompt</button>
+          </div>
+          <label class="ai-prompt-field">
+            <span>AI instruction</span>
+            <textarea class="ai-prompt-input" id="aiPromptInput" rows="3">${escapeHtml(aiPrompt)}</textarea>
+          </label>
+          <div class="meta-actions copy-actions">
+            <button class="copy-button copy-primary" id="copyCurrentButton" type="button">Copy current task + answer</button>
+            <button class="copy-button" id="copyAnsweredButton" type="button">Copy all answered</button>
+            <button class="copy-button quiet" id="resetAnswersButton" type="button">Reset answers</button>
+            <span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderObjectiveAnswer(item) {
+      const questions = getObjectiveQuestions(item);
+      return `
+        <div class="answer-panel">
+          <h3>Your answers</h3>
+          <div class="choice-list">
+            ${questions.map((question) => `
+              <div class="choice-question" data-question="${question.key}">
+                <p>${question.number}. ${escapeHtml(question.label)}</p>
+                <div class="choice-options">
+                  ${getChoices(question).map((choice) => `
+                    <label class="choice-option">
+                      <input type="radio" name="${item.id}-${question.key}" data-choice="${question.key}" value="${escapeHtml(choice.value)}">
+                      ${escapeHtml(choice.value === choice.text ? choice.text : `${choice.value}) ${choice.text}`)}
+                    </label>
+                  `).join("")}
+                </div>
+                <p class="choice-feedback" data-feedback="${question.key}"></p>
+              </div>
+            `).join("")}
+          </div>
+          <button class="nav-button primary" id="checkAnswersButton" type="button">Check answers</button>
+          ${renderCopyActions()}
+          <p class="score" id="scoreLine" ${checked[item.id] ? "" : "hidden"}></p>
+        </div>
+      `;
+    }
+
+    function renderInlineResults(item) {
+      const scoreLine = document.querySelector("#scoreLine");
+      if (!scoreLine) return;
+      const questions = getObjectiveQuestions(item);
+      const saved = answers[item.id] || {};
+      const correctCount = questions.filter((question) => saved[question.key] === question.answer).length;
+      scoreLine.hidden = false;
+      scoreLine.textContent = `${correctCount} / ${questions.length} correct`;
+
+      questions.forEach((question) => {
+        const value = saved[question.key] || "[blank]";
+        const isCorrect = value === question.answer;
+        const questionBlock = document.querySelector(`[data-question="${question.key}"]`);
+        const feedback = document.querySelector(`[data-feedback="${question.key}"]`);
+        if (!questionBlock || !feedback) return;
+        questionBlock.classList.toggle("is-correct", isCorrect);
+        questionBlock.classList.toggle("is-wrong", !isCorrect);
+        questionBlock.querySelectorAll(".choice-option").forEach((option) => {
+          const input = option.querySelector("input");
+          const isCorrectChoice = input?.value === question.answer;
+          const isWrongSelected = input?.checked && !isCorrectChoice;
+          option.classList.toggle("is-correct-choice", isCorrectChoice);
+          option.classList.toggle("is-wrong-choice", isWrongSelected);
+        });
+        feedback.textContent = "";
+      });
+    }
+
+    function hydrateCopyControls() {
+      const promptInput = document.querySelector("#aiPromptInput");
+      const resetPromptButton = document.querySelector("#resetAiPromptButton");
+      if (promptInput) {
+        promptInput.addEventListener("input", () => {
+          aiPrompt = promptInput.value;
+          saveAiPrompt();
+        });
+      }
+      if (resetPromptButton && promptInput) {
+        resetPromptButton.addEventListener("click", () => {
+          aiPrompt = DEFAULT_AI_PROMPT;
+          saveAiPrompt();
+          promptInput.value = aiPrompt;
+          setCopyStatus("Prompt reset", false);
+        });
+      }
+    }
+
+    function playAudioText(text) {
+      if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+        setCopyStatus("Audio not supported", true);
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const germanVoice = voices.find((voice) => voice.lang?.toLowerCase().startsWith("de"));
+      if (germanVoice) utterance.voice = germanVoice;
+      utterance.lang = "de-DE";
+      utterance.rate = 0.82;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function renderAnswer(item) {
+      if (hasObjectiveQuestions(item)) {
+        return renderObjectiveAnswer(item);
+      }
+
+      if (item.section === "writing-form") {
+        return `
+          <div class="answer-panel">
+            <h3>Your answer</h3>
+            <div class="form-shell">
+              ${item.fields.map((field) => `
+                <label>
+                  ${escapeHtml(field)}
+                  <input type="text" data-answer="${escapeHtml(field)}" autocomplete="off">
+                </label>
+              `).join("")}
+            </div>
+            ${renderCopyActions()}
+          </div>
+        `;
+      }
+
+      if (item.section === "speaking-request") {
+        return `
+          <div class="answer-panel">
+            <h3>Your answer</h3>
+            <label>
+              Request
+              <textarea rows="4" data-answer="request" placeholder="Write or say your request."></textarea>
+            </label>
+            <label>
+              Reaction
+              <textarea rows="4" data-answer="reaction" placeholder="Write or say a short reaction."></textarea>
+            </label>
+            ${renderCopyActions()}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="answer-panel">
+          <h3>Your answer</h3>
+          <textarea data-answer="text" placeholder="Write your answer here."></textarea>
+          ${renderCopyActions()}
+        </div>
+      `;
+    }
+
+    function renderOptionList(options) {
+      return `
+        <ul class="sample-box">
+          ${options.map((option) => `<li><strong>${escapeHtml(option.value)})</strong> ${formatMultiline(option.text)}</li>`).join("")}
+        </ul>
+      `;
+    }
+
+    function renderListeningPrompt(item) {
+      return `
+        <article class="task-block audio-card">
+          <p class="block-title">Audio</p>
+          <div class="audio-actions">
+            <button class="nav-button primary" type="button" data-play-audio>Play audio</button>
+            <button class="nav-button" type="button" data-stop-audio>Stop</button>
+          </div>
+          <p class="audio-note">The transcript is hidden for practice. Use headphones and play the audio twice, like a real exam task.</p>
+        </article>
+        <article class="task-block">
+          <p class="block-title">Question</p>
+          ${renderPoints(item.questions.map((question) => question.label))}
+        </article>
+      `;
+    }
+
+    function renderReadingPrompt(item) {
+      if (item.groups) {
+        return item.groups.map((group) => `
+          <article class="task-block">
+            <p class="block-title">${escapeHtml(group.title)}</p>
+            ${group.blocks.map((block, index) => `
+              <div class="mini-block">
+                <h4>${escapeHtml(block.heading || `Item ${index + 1}`)}</h4>
+                ${block.text ? `<p class="scenario">${formatMultiline(block.text)}</p>` : ""}
+                ${block.situation ? `<p class="scenario"><strong>Situation:</strong> ${escapeHtml(block.situation)}</p>` : ""}
+                ${block.sign ? `<p class="scenario"><strong>Sign / notice:</strong><br>${formatMultiline(block.sign)}</p>` : ""}
+                ${block.options ? renderOptionList(block.options) : ""}
+                ${renderPoints(block.questions.map((question) => question.label))}
+              </div>
+            `).join("")}
+          </article>
+        `).join("");
+      }
+
+      const blocks = [];
+      if (item.text) {
+        blocks.push(`
+          <article class="task-block">
+            <p class="block-title">Text</p>
+            <p class="scenario">${formatMultiline(item.text)}</p>
+          </article>
+        `);
+      }
+
+      if (item.situation) {
+        blocks.push(`
+          <article class="task-block">
+            <p class="block-title">Situation</p>
+            <p class="scenario">${escapeHtml(item.situation)}</p>
+          </article>
+        `);
+      }
+
+      if (item.sign) {
+        blocks.push(`
+          <article class="task-block">
+            <p class="block-title">Sign / notice</p>
+            <p class="scenario">${formatMultiline(item.sign)}</p>
+          </article>
+        `);
+      }
+
+      if (item.options) {
+        blocks.push(`
+          <article class="task-block">
+            <p class="block-title">Options</p>
+            ${renderOptionList(item.options)}
+          </article>
+        `);
+      }
+
+      if (item.questions) {
+        blocks.push(`
+          <article class="task-block">
+            <p class="block-title">Questions</p>
+            ${renderPoints(item.questions.map((question) => question.label))}
+          </article>
+        `);
+      }
+
+      return blocks.join("");
+    }
+
+    function renderPrompt(item) {
+      if (isListeningItem(item)) {
+        return renderListeningPrompt(item);
+      }
+
+      if (hasObjectiveQuestions(item)) {
+        return renderReadingPrompt(item);
+      }
+
+      if (item.section === "writing-form") {
+        return `
+          <article class="task-block">
+            <p class="block-title">Situation</p>
+            <p class="scenario">${escapeHtml(item.scenario)}</p>
+          </article>
+        `;
+      }
+
+      if (item.section === "writing-message") {
+        return `
+          <article class="task-block">
+            <p class="block-title">Task</p>
+            <p class="scenario">${escapeHtml(item.intro)}</p>
+            ${renderPoints(item.points)}
+          </article>
+          <article class="task-block">
+            <p class="block-title">Text form</p>
+            <p class="scenario">${item.formality === "Informal" ? "Informal: Liebe / Lieber ... · Viele Grüße" : item.formality === "Formal" ? "Formal: Sehr geehrte Damen und Herren · Mit freundlichen Grüßen" : "Choose a suitable greeting and closing."}</p>
+          </article>
+        `;
+      }
+
+      if (item.section === "speaking-info") {
+        return `
+          <article class="task-block">
+            <p class="block-title">Cards</p>
+            <div class="cards">
+              ${item.cards.map((card) => `<span class="word-card">${escapeHtml(card)}</span>`).join("")}
+            </div>
+          </article>
+          <article class="task-block">
+            <p class="block-title">Examples</p>
+            <ul class="sample-box">
+              ${item.examples.map((example) => `<li>${escapeHtml(example)}</li>`).join("")}
+            </ul>
+          </article>
+        `;
+      }
+
+      return `
+        <article class="task-block">
+          <p class="block-title">Picture card</p>
+          <div class="cards">
+            <span class="word-card">${escapeHtml(item.title)}</span>
+          </div>
+        </article>
+        <article class="task-block">
+          <p class="block-title">Example</p>
+          <div class="request-grid">
+            <p class="request-line"><span>Request</span>${escapeHtml(item.request)}</p>
+            <p class="request-line"><span>Reaction</span>${escapeHtml(item.reaction)}</p>
+          </div>
+        </article>
+      `;
+    }
+
+    function hydrateAnswerInputs(item) {
+      const saved = answers[item.id] || {};
+      document.querySelectorAll("[data-answer]").forEach((field) => {
+        const key = field.dataset.answer;
+        field.value = saved[key] || "";
+        field.addEventListener("input", () => {
+          answers[item.id] = {
+            ...answers[item.id],
+            [key]: field.value
+          };
+          saveProgress();
+          renderQuestionList();
+        });
+      });
+
+      document.querySelectorAll("[data-choice]").forEach((field) => {
+        const key = field.dataset.choice;
+        field.checked = saved[key] === field.value;
+        field.addEventListener("change", () => {
+          answers[item.id] = {
+            ...answers[item.id],
+            [key]: field.value
+          };
+          saveProgress();
+          renderQuestionList();
+          if (checked[item.id]) renderInlineResults(item);
+        });
+      });
+
+      const checkButton = document.querySelector("#checkAnswersButton");
+      if (checkButton) {
+        checkButton.addEventListener("click", () => {
+          checked[item.id] = true;
+          saveProgress();
+          renderInlineResults(item);
+          renderQuestionList();
+        });
+      }
+
+      if (checked[item.id]) renderInlineResults(item);
+
+      const playButton = document.querySelector("[data-play-audio]");
+      if (playButton) {
+        playButton.addEventListener("click", () => playAudioText(item.audioText));
+      }
+
+      const stopButton = document.querySelector("[data-stop-audio]");
+      if (stopButton) {
+        stopButton.addEventListener("click", () => {
+          if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        });
+      }
+    }
+
+    function renderPractice() {
+      const filtered = getFilteredData();
+      if (state.index >= filtered.length) state.index = filtered.length - 1;
+      if (state.index < 0) state.index = 0;
+      const item = filtered[state.index];
+      const globalIndex = data.findIndex((entry) => entry.id === item.id) + 1;
+      const part = partByKey[item.section];
+      syncRecommendedTimer(part);
+
+      practice.innerHTML = `
+        ${renderModuleFocus(part, filtered)}
+        <div class="meta-row">
+          <div class="badge-row">
+            <span class="badge kind">${escapeHtml(part.label)}</span>
+            <span class="badge">${escapeHtml(moduleLabels[part.module])}</span>
+            <span class="badge">${escapeHtml(getKindLabel(item))}</span>
+            ${hasDifficultyMetadata(item.section) ? `<span class="badge ${escapeHtml(getDifficulty(item))}">${escapeHtml(getDifficulty(item))}</span>` : ""}
+            ${item.formality ? `<span class="badge">${escapeHtml(item.formality)}</span>` : ""}
+          </div>
+          <div class="meta-actions">
+            <span class="progress">${state.index + 1} / ${filtered.length} · Overall ${globalIndex} / ${data.length}</span>
+          </div>
+        </div>
+
+        <header class="question-header">
+          <h2>${escapeHtml(item.title)}</h2>
+          <p>${getHeaderHint(item)}</p>
+        </header>
+
+        <div class="task-grid">
+          <div class="practice">${renderPrompt(item)}</div>
+          ${renderAnswer(item)}
+        </div>
+
+        <div class="nav-row">
+          <button class="nav-button" id="prevButton" type="button" ${state.index === 0 ? "disabled" : ""}>← Back</button>
+          <button class="nav-button primary" id="nextButton" type="button" ${state.index === filtered.length - 1 ? "disabled" : ""}>Next →</button>
+        </div>
+
+        <p class="audio-note">Independent telc A1-style practice. Not affiliated with or endorsed by telc; original practice content only.</p>
+      `;
+
+      hydrateAnswerInputs(item);
+      document.querySelector("#prevButton").addEventListener("click", () => move(-1));
+      document.querySelector("#nextButton").addEventListener("click", () => move(1));
+      document.querySelector("#copyCurrentButton").addEventListener("click", copyCurrentItem);
+      document.querySelector("#copyAnsweredButton").addEventListener("click", copyAnsweredItems);
+      document.querySelector("#resetAnswersButton").addEventListener("click", openResetDialog);
+      hydrateCopyControls();
+      document.querySelector("#startFocusTimerButton")?.addEventListener("click", startTimer);
+    }
+
+    function getHeaderHint(item) {
+      if (hasObjectiveQuestions(item)) {
+        return item.instruction;
+      }
+      if (item.section === "writing-form") {
+        return "Read the situation and fill in the missing information.";
+      }
+      if (item.section === "writing-message") {
+        return "Write about 30 words and answer all three content points.";
+      }
+      if (item.section === "speaking-info") {
+        return "Make simple questions using the word cards.";
+      }
+      return "Write or say a short request and a suitable reaction.";
+    }
+
+    function move(step) {
+      const filtered = getFilteredData();
+      state.index = Math.min(Math.max(state.index + step, 0), filtered.length - 1);
+      saveProgress();
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderAll() {
+      normalizeState();
+      renderModuleSegments();
+      renderPartSegments();
+      renderDifficultySegments();
+      renderQuestionList();
+      renderPractice();
+    }
+
+    moduleSegments.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-module]");
+      if (!button) return;
+      state.module = button.dataset.module;
+      state.part = parts.find((part) => part.module === state.module).key;
+      state.difficulty = "all";
+      state.index = 0;
+      saveProgress();
+      renderAll();
+    });
+
+    partSegments.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-part]");
+      if (!button) return;
+      state.part = button.dataset.part;
+      state.difficulty = "all";
+      state.index = 0;
+      saveProgress();
+      renderAll();
+    });
+
+    difficultySegments.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-difficulty]");
+      if (!button) return;
+      state.difficulty = button.dataset.difficulty;
+      state.index = 0;
+      saveProgress();
+      renderAll();
+    });
+
+    resetDialog.addEventListener("click", (event) => {
+      if (event.target === resetDialog || event.target.closest("[data-reset-cancel]")) {
+        closeResetDialog();
+        return;
+      }
+
+      const scopeButton = event.target.closest("[data-reset-scope]");
+      if (!scopeButton) return;
+      resetProgress(scopeButton.dataset.resetScope);
+    });
+
+    onboardingDialog.addEventListener("click", (event) => {
+      if (event.target === onboardingDialog || event.target.closest("[data-onboarding-later]")) {
+        closeOnboarding(false);
+        return;
+      }
+
+      if (event.target.closest("[data-onboarding-done]")) {
+        closeOnboarding(true);
+      }
+    });
+
+    questionList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-index]");
+      if (!button) return;
+      state.index = Number(button.dataset.index);
+      saveProgress();
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !resetDialog.hidden) {
+        closeResetDialog();
+        return;
+      }
+      if (event.key === "Escape" && !onboardingDialog.hidden) {
+        closeOnboarding(false);
+        return;
+      }
+      const tagName = document.activeElement.tagName;
+      if (tagName === "INPUT" || tagName === "TEXTAREA") return;
+      if (event.key === "ArrowRight") move(1);
+      if (event.key === "ArrowLeft") move(-1);
+    });
+
+    let timerSeconds = 600;
+    let timerId = null;
+    const timerDisplay = document.querySelector("#timerDisplay");
+    const timerLabel = document.querySelector("#timerLabel");
+
+    function renderTimer() {
+      const minutes = String(Math.floor(timerSeconds / 60)).padStart(2, "0");
+      const seconds = String(timerSeconds % 60).padStart(2, "0");
+      timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+
+    function setTimerMinutes(minutes) {
+      pauseTimer();
+      timerSeconds = minutes * 60;
+      renderTimer();
+    }
+
+    function syncRecommendedTimer(part) {
+      const preset = getTimerPreset(part);
+      const key = `${state.part}:${preset.minutes}`;
+      timerLabel.textContent = `${moduleLabels[part.module]} · ${preset.minutes} min`;
+      if (activeTimerPresetKey === key) return;
+      activeTimerPresetKey = key;
+      setTimerMinutes(preset.minutes);
+    }
+
+    function startTimer() {
+      if (timerId) return;
+      timerId = window.setInterval(() => {
+        timerSeconds = Math.max(0, timerSeconds - 1);
+        renderTimer();
+        if (timerSeconds === 0) pauseTimer();
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+
+    document.querySelector("#timerStart").addEventListener("click", startTimer);
+    document.querySelector("#timerPause").addEventListener("click", pauseTimer);
+    document.querySelector("#timerReset").addEventListener("click", () => {
+      const preset = getTimerPreset(partByKey[state.part]);
+      setTimerMinutes(preset.minutes);
+    });
+    document.querySelector("#guideButton").addEventListener("click", openOnboarding);
+    document.querySelector("#globalResetButton").addEventListener("click", openResetDialog);
+
+    renderAll();
+    if (!hasSeenOnboarding()) {
+      window.setTimeout(openOnboarding, 250);
+    }
+  </script>
+</body>
+</html>
