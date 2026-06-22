@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="ga4-measurement-id" content="G-MEE3E1SC0W">
   <title>telc A1 Practice Pack</title>
   <link rel="stylesheet" href="styles-redesign.css">
 </head>
@@ -89,6 +90,14 @@
         <button class="nav-button" type="button" data-onboarding-later>Remind me later</button>
         <button class="nav-button primary" type="button" data-onboarding-done>Start practicing</button>
       </div>
+    </div>
+  </div>
+
+  <div class="analytics-consent" id="analyticsConsent" hidden>
+    <p>Help improve this practice app with basic usage analytics.</p>
+    <div>
+      <button class="copy-button quiet" type="button" data-analytics-decline>No thanks</button>
+      <button class="copy-button copy-primary" type="button" data-analytics-accept>Allow analytics</button>
     </div>
   </div>
 
@@ -1703,6 +1712,8 @@ Nora`,
     const STORAGE_KEY = "telc-a1-practice-progress-v1";
     const AI_PROMPT_STORAGE_KEY = "telc-a1-practice-ai-prompt-v1";
     const ONBOARDING_STORAGE_KEY = "telc-a1-practice-onboarding-seen-v1";
+    const ANALYTICS_CONSENT_STORAGE_KEY = "telc-a1-practice-analytics-consent-v1";
+    const GA4_MEASUREMENT_ID = document.querySelector('meta[name="ga4-measurement-id"]')?.content.trim() || "";
     const DEFAULT_AI_PROMPT = "Please assess my telc A1 practice answer. Check whether I answered the task correctly and give concise feedback in English. Keep the German task text and my German answers unchanged when you refer to them.";
     const storedProgress = loadStoredProgress();
     const answers = storedProgress.answers || {};
@@ -1722,7 +1733,84 @@ Nora`,
     const practice = document.querySelector("#practice");
     const resetDialog = document.querySelector("#resetDialog");
     const onboardingDialog = document.querySelector("#onboardingDialog");
+    const analyticsConsent = document.querySelector("#analyticsConsent");
     let activeTimerPresetKey = "";
+    let analyticsReady = false;
+    let lastTrackedTaskView = "";
+
+    function hasAnalyticsId() {
+      return /^G-[A-Z0-9-]+$/i.test(GA4_MEASUREMENT_ID);
+    }
+
+    function getAnalyticsConsent() {
+      try {
+        return window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    }
+
+    function setAnalyticsConsent(value) {
+      try {
+        window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, value);
+      } catch {
+        // Analytics still respects the current in-memory choice when storage is unavailable.
+      }
+    }
+
+    function initAnalytics() {
+      if (analyticsReady || !hasAnalyticsId() || getAnalyticsConsent() !== "granted") return;
+      analyticsReady = true;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function gtag() {
+        window.dataLayer.push(arguments);
+      };
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_MEASUREMENT_ID)}`;
+      document.head.appendChild(script);
+      window.gtag("js", new Date());
+      window.gtag("config", GA4_MEASUREMENT_ID);
+    }
+
+    function getAnalyticsContext() {
+      const item = getFilteredData()[state.index];
+      const part = item ? partByKey[item.section] : partByKey[state.part];
+      return {
+        app_module: part?.module || state.module,
+        app_part: part?.key || state.part,
+        task_type: item ? getKindLabel(item) : "unknown",
+        task_difficulty: item && hasDifficultyMetadata(item.section) ? getDifficulty(item) : "none"
+      };
+    }
+
+    function trackEvent(eventName, params = {}) {
+      if (!hasAnalyticsId() || getAnalyticsConsent() !== "granted") return;
+      initAnalytics();
+      if (typeof window.gtag !== "function") return;
+      window.gtag("event", eventName, {
+        ...getAnalyticsContext(),
+        ...params
+      });
+    }
+
+    function trackCurrentTaskView(source) {
+      const item = getFilteredData()[state.index];
+      if (!item) return;
+      const key = `${item.id}:${source}`;
+      if (lastTrackedTaskView === key) return;
+      lastTrackedTaskView = key;
+      trackEvent("practice_task_view", { view_source: source });
+    }
+
+    function showAnalyticsConsentIfNeeded() {
+      if (!analyticsConsent || !hasAnalyticsId() || getAnalyticsConsent()) return;
+      analyticsConsent.hidden = false;
+    }
+
+    function hideAnalyticsConsent() {
+      if (analyticsConsent) analyticsConsent.hidden = true;
+    }
 
     function escapeHtml(value) {
       return String(value)
@@ -1815,11 +1903,13 @@ Nora`,
       }
 
       saveProgress();
+      trackEvent("answers_reset", { reset_scope: scope });
       closeResetDialog();
       renderAll();
     }
 
     function openResetDialog() {
+      trackEvent("reset_dialog_open");
       resetDialog.hidden = false;
       resetDialog.querySelector("[data-reset-cancel]")?.focus();
     }
@@ -1829,11 +1919,13 @@ Nora`,
     }
 
     function openOnboarding() {
+      trackEvent("onboarding_open");
       onboardingDialog.hidden = false;
       onboardingDialog.querySelector("[data-onboarding-done]")?.focus();
     }
 
     function closeOnboarding(markSeen = false) {
+      trackEvent(markSeen ? "onboarding_finish" : "onboarding_dismiss");
       if (markSeen) markOnboardingSeen();
       onboardingDialog.hidden = true;
     }
@@ -2305,6 +2397,7 @@ Nora`,
     async function copyCurrentItem() {
       const item = getFilteredData()[state.index];
       const result = await copyWithFallback(formatItemForCopy(item));
+      trackEvent("copy_current_task", { copy_result: result });
       setCopyStatus(result === "copied" ? "Copied" : "Text selected", false);
     }
 
@@ -2317,6 +2410,10 @@ Nora`,
 
       const text = answeredItems.map(formatItemForCopy).join("\n\n---\n\n");
       const result = await copyWithFallback(text);
+      trackEvent("copy_answered_tasks", {
+        copy_result: result,
+        answered_count: answeredItems.length
+      });
       setCopyStatus(result === "copied" ? `${answeredItems.length} copied` : "Text selected", false);
     }
 
@@ -2421,6 +2518,7 @@ Nora`,
           aiPrompt = DEFAULT_AI_PROMPT;
           saveAiPrompt();
           promptInput.value = aiPrompt;
+          trackEvent("ai_prompt_reset");
           setCopyStatus("Prompt reset", false);
         });
       }
@@ -2686,6 +2784,14 @@ Nora`,
           saveProgress();
           renderInlineResults(item);
           renderQuestionList();
+          const questions = getObjectiveQuestions(item);
+          const saved = answers[item.id] || {};
+          const correctCount = questions.filter((question) => saved[question.key] === question.answer).length;
+          trackEvent("answer_check", {
+            question_count: questions.length,
+            correct_count: correctCount,
+            score_percent: questions.length ? Math.round((correctCount / questions.length) * 100) : 0
+          });
         });
       }
 
@@ -2693,12 +2799,16 @@ Nora`,
 
       const playButton = document.querySelector("[data-play-audio]");
       if (playButton) {
-        playButton.addEventListener("click", () => playAudioText(item.audioText));
+        playButton.addEventListener("click", () => {
+          trackEvent("audio_play");
+          playAudioText(item.audioText);
+        });
       }
 
       const stopButton = document.querySelector("[data-stop-audio]");
       if (stopButton) {
         stopButton.addEventListener("click", () => {
+          trackEvent("audio_stop");
           if ("speechSynthesis" in window) window.speechSynthesis.cancel();
         });
       }
@@ -2753,7 +2863,8 @@ Nora`,
       document.querySelector("#copyAnsweredButton").addEventListener("click", copyAnsweredItems);
       document.querySelector("#resetAnswersButton").addEventListener("click", openResetDialog);
       hydrateCopyControls();
-      document.querySelector("#startFocusTimerButton")?.addEventListener("click", startTimer);
+      document.querySelector("#startFocusTimerButton")?.addEventListener("click", () => startTimer("focus_panel"));
+      trackCurrentTaskView("render");
     }
 
     function getHeaderHint(item) {
@@ -2776,6 +2887,7 @@ Nora`,
       const filtered = getFilteredData();
       state.index = Math.min(Math.max(state.index + step, 0), filtered.length - 1);
       saveProgress();
+      trackEvent("task_navigation", { direction: step > 0 ? "next" : "back" });
       renderAll();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -2797,6 +2909,7 @@ Nora`,
       state.difficulty = "all";
       state.index = 0;
       saveProgress();
+      trackEvent("module_select", { selected_module: state.module });
       renderAll();
     });
 
@@ -2807,6 +2920,7 @@ Nora`,
       state.difficulty = "all";
       state.index = 0;
       saveProgress();
+      trackEvent("part_select", { selected_part: state.part });
       renderAll();
     });
 
@@ -2816,6 +2930,7 @@ Nora`,
       state.difficulty = button.dataset.difficulty;
       state.index = 0;
       saveProgress();
+      trackEvent("difficulty_filter", { selected_difficulty: state.difficulty });
       renderAll();
     });
 
@@ -2846,6 +2961,7 @@ Nora`,
       if (!button) return;
       state.index = Number(button.dataset.index);
       saveProgress();
+      trackEvent("question_select");
       renderAll();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
@@ -2891,30 +3007,59 @@ Nora`,
       setTimerMinutes(preset.minutes);
     }
 
-    function startTimer() {
+    function startTimer(source = "topbar") {
       if (timerId) return;
+      trackEvent("timer_start", {
+        timer_source: source,
+        timer_duration_seconds: timerSeconds
+      });
       timerId = window.setInterval(() => {
         timerSeconds = Math.max(0, timerSeconds - 1);
         renderTimer();
-        if (timerSeconds === 0) pauseTimer();
+        if (timerSeconds === 0) {
+          trackEvent("timer_complete");
+          pauseTimer();
+        }
       }, 1000);
     }
 
-    function pauseTimer() {
+    function pauseTimer(source = "") {
+      if (source && timerId) {
+        trackEvent("timer_pause", {
+          timer_source: source,
+          timer_remaining_seconds: timerSeconds
+        });
+      }
       window.clearInterval(timerId);
       timerId = null;
     }
 
-    document.querySelector("#timerStart").addEventListener("click", startTimer);
-    document.querySelector("#timerPause").addEventListener("click", pauseTimer);
+    document.querySelector("#timerStart").addEventListener("click", () => startTimer("topbar"));
+    document.querySelector("#timerPause").addEventListener("click", () => pauseTimer("topbar"));
     document.querySelector("#timerReset").addEventListener("click", () => {
       const preset = getTimerPreset(partByKey[state.part]);
+      trackEvent("timer_reset", { timer_duration_minutes: preset.minutes });
       setTimerMinutes(preset.minutes);
     });
     document.querySelector("#guideButton").addEventListener("click", openOnboarding);
     document.querySelector("#globalResetButton").addEventListener("click", openResetDialog);
 
+    analyticsConsent?.querySelector("[data-analytics-accept]")?.addEventListener("click", () => {
+      setAnalyticsConsent("granted");
+      hideAnalyticsConsent();
+      initAnalytics();
+      trackEvent("analytics_accept");
+      trackCurrentTaskView("analytics_accept");
+    });
+
+    analyticsConsent?.querySelector("[data-analytics-decline]")?.addEventListener("click", () => {
+      setAnalyticsConsent("denied");
+      hideAnalyticsConsent();
+    });
+
+    initAnalytics();
     renderAll();
+    showAnalyticsConsentIfNeeded();
     if (!hasSeenOnboarding()) {
       window.setTimeout(openOnboarding, 250);
     }

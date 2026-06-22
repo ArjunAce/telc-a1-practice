@@ -1157,6 +1157,40 @@ main > .practice {
   justify-content: flex-end;
 }
 
+.analytics-consent {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 35;
+  width: min(29rem, calc(100vw - 2rem));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.82rem;
+  border: 1px solid rgba(201, 197, 185, 0.92);
+  border-radius: var(--radius);
+  background: rgba(255, 254, 250, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.analytics-consent[hidden] {
+  display: none;
+}
+
+.analytics-consent p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.42;
+}
+
+.analytics-consent div {
+  display: flex;
+  gap: 0.45rem;
+}
+
 .question-header {
   position: relative;
   padding: 1rem 0 1.15rem;
@@ -1853,6 +1887,18 @@ textarea {
   .copy-status {
     width: 100%;
     text-align: left;
+  }
+
+  .analytics-consent {
+    left: 0.85rem;
+    right: 0.85rem;
+    width: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-consent div,
+  .analytics-consent .copy-button {
+    width: 100%;
   }
 
   textarea {
